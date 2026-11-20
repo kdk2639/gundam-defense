@@ -1,11 +1,11 @@
 <!DOCTYPE html>
-<!-- arcadia-v3-2026-11-19 -->
+<!-- arcadia-v4 -->
 <html lang="ko">
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
 <meta name="theme-color" content="#070b12" />
-<title>우주세기 랜덤 디펜스 — 아르카디아 방위전 v3</title>
+<title>우주세기 랜덤 디펜스 — 아르카디아 방위전 v4</title>
 <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
 <style>
 :root{
@@ -37,17 +37,22 @@ button{font-family:inherit;cursor:pointer;color:inherit}
 .btn.ghost{background:transparent}
 .btn.on{border-color:var(--gold);color:var(--gold2);box-shadow:0 0 0 1px var(--gold) inset}
 .btn.hell{background:linear-gradient(180deg,#5a1820,#2a0a10);border-color:#e35d4a;color:#ffc8c8}
-.peers{display:flex;gap:6px;overflow:auto;padding:2px 0;min-height:0;flex:0 0 auto}
-.peer-card{min-width:150px;max-width:180px;background:linear-gradient(180deg,#151c28,#0e141e);border:1px solid var(--line);border-radius:10px;padding:6px 8px;font-size:11px;flex:0 0 auto}
+.peers{display:grid;grid-template-columns:repeat(4,minmax(90px,1fr));gap:6px;overflow:auto;padding:2px 0;min-height:0;max-height:18vh;flex:0 0 auto}
+.peer-card{min-width:0;background:linear-gradient(180deg,#151c28,#0e141e);border:1px solid var(--line);border-radius:10px;padding:5px 7px;font-size:11px;cursor:pointer;transition:.2s}
+.peer-card canvas{width:100%;height:60px;background:#0a1018;border-radius:6px;display:block}
+.peer-card.spectating{grid-column:1/-1;border-color:var(--gold)}
+.peer-card.spectating canvas{height:min(30vh,230px)}
+@media(max-width:860px){.peers{grid-template-columns:repeat(4,minmax(66px,1fr));max-height:16vh}.peer-card{padding:3px;font-size:9px}.peer-card .tops{display:none}.peer-card canvas{height:46px}}
 .peer-card.me{border-color:#5b87c7}
 .peer-card.dead{opacity:.55;filter:grayscale(.6)}
 .peer-card .pn{font-weight:800;color:var(--gold2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .peer-card .pm{color:var(--muted);margin:2px 0}
-.peer-card canvas{width:100%;height:54px;background:#0a1018;border-radius:6px;display:block}
 .peer-card .tops{color:#c5ced6;font-size:10px;line-height:1.3;margin-top:3px;min-height:2.6em}
 .main{flex:1;display:grid;grid-template-columns:1fr 300px;gap:8px;min-height:0}
 .stage{position:relative;background:#070b12;border:1px solid var(--line);border-radius:12px;overflow:hidden;display:flex;align-items:center;justify-content:center;min-height:280px}
 .stage canvas{display:block;max-width:100%;max-height:100%}
+.stage.spectate-remote #cv,.stage.spectate-remote .announce,.stage.spectate-remote .alog{display:none}
+#spectateCv{width:100%;height:100%;object-fit:contain}
 .toast{position:absolute;left:50%;bottom:14px;transform:translateX(-50%);background:rgba(8,12,20,.9);border:1px solid var(--gold);color:var(--gold2);padding:8px 14px;border-radius:8px;font-size:13px;font-weight:700;opacity:0;pointer-events:none;transition:opacity .2s;z-index:6;text-align:center;max-width:90%}
 .toast.show{opacity:1}
 .gacha{position:absolute;inset:0;display:none;place-items:center;background:rgba(4,8,16,.75);z-index:5}
@@ -140,7 +145,7 @@ button{font-family:inherit;cursor:pointer;color:inherit}
   <header class="hud">
     <div class="brand">
       <div class="logo">UC</div>
-      <div><h1>아르카디아 방위전</h1><p>우주세기 랜덤 디펜스 v3</p><p class="pilot-id" id="stPilot">조종사 --</p></div>
+      <div><h1>아르카디아 방위전</h1><p>우주세기 랜덤 디펜스 v4</p><p class="pilot-id" id="stPilot">조종사 --</p></div>
     </div>
     <div class="stats">
       <div class="stat"><span class="k">크레딧</span><span class="v" id="stGold">0</span></div>
@@ -155,6 +160,8 @@ button{font-family:inherit;cursor:pointer;color:inherit}
     <div class="controls">
       <button class="btn" id="btnSpeed" type="button">1배속</button>
       <button class="btn" id="btnPause" type="button">일시정지</button>
+      <button class="btn on" id="btnDamage" type="button" title="피해 숫자 표시">피해 표시</button>
+      <button class="btn on" id="btnEffects" type="button" title="전투 연출 켜기">연출 켜기</button>
       <button class="btn" id="btnMute" type="button">소리 켜기</button>
       <div class="vol-wrap" title="배경음악 볼륨">
         <input id="bgmVol" type="range" min="0" max="100" value="40" />
@@ -200,7 +207,7 @@ button{font-family:inherit;cursor:pointer;color:inherit}
   <div class="modal">
     <div class="story-art"><canvas id="titleCv" width="960" height="264"></canvas></div>
     <h2>우주세기 랜덤 디펜스</h2>
-    <p id="titleVer">v3 · 라운드 3분 · 전멸 시 패배 · 시계방향 궤도</p>
+    <p id="titleVer">v4 · 개인 랜덤 디펜스 · 라운드 3분 · 전멸 시 패배 · 시계방향 궤도</p>
     <p style="text-align:center">아르카디아 콜로니를 지키는<br>모빌슈트 소환 방어전</p>
     <p style="text-align:center">조종사 ID  <b class="pilot-id" id="titlePilot">--</b></p>
     <p style="text-align:center;color:var(--gold2)" id="titleBest"></p>
@@ -318,7 +325,7 @@ button{font-family:inherit;cursor:pointer;color:inherit}
 <script>
 (() => {
 "use strict";
-const VERSION="v3", MAX_ROUND=40, PITY_N=15, LW=1100, LH=700, ROUND_SEC=180, BREAK_SEC=6;
+const VERSION="v4", MAX_ROUND=40, PITY_N=15, LW=1100, LH=700, ROUND_SEC=180, BREAK_SEC=6;
 const BENCH_N=10, OUTER_N=24, INNER_N=12;
 const FIELD_N=OUTER_N+INNER_N, TOTAL_SLOTS=FIELD_N+BENCH_N;
 const GRADES=[
@@ -345,6 +352,9 @@ const DIFFS={
   hell:   {name:"헬",   gold:210, cap:240, hp:1.48, spd:1.12, goldMul:0.72, draw:50, bossT:1, interest:0.016, icap:18}
 };
 const HP_BASE=1.102, SPAWN_BASE=7, SPAWN_GROW=1.05, RANGE_PAD=42;
+const PILOTS={gm:"세일라 마스",zaku2:"샤아 아즈나블",ball:"하야토 코바야시",gouf:"란바 랄",guntank:"하야토 코바야시",acguy:"아카하나",guncannon:"카이 시덴",dom:"검은 삼연성",gelgoog:"애너벨 가토",rickdias:"아폴리 베이",nemo:"브라이트 노아",zgok:"샤아 아즈나블",rx78:"아무로 레이",charzaku:"샤아 아즈나블",zeta:"카미유 비단",hyakushiki:"콰트로 바지나",qubeley:"하만 칸",nu:"아무로 레이",sazabi:"샤아 아즈나블",zz:"쥬도 아시타",theo:"하만 칸",unicorn:"바나지 링크스",sinanju:"풀 프론탈",hinu:"아무로 레이",whitebase:"브라이트 노아",gryps:"카미유 비단",axisfall:"아무로 레이",dendrobium:"코우 우라키",gp02:"애너벨 가토",gato:"애너벨 가토",lalah:"라라아 순",psychogundam:"포우 무라사메"};
+const PILOT_SKILL={"아무로 레이":"뉴타입 감응 · 공격 시 18% 확률로 2.2배 치명타","샤아 아즈나블":"붉은 혜성 · 공격 속도 3배","카미유 비단":"분노의 공명 · 공격력 +25%","쥬도 아시타":"강한 의지 · 광역 범위와 피해 +20%","바나지 링크스":"가능성의 빛 · 주변 아군 공격력 +12%","풀 프론탈":"붉은 혜성의 잔향 · 공격 속도 +50%","하만 칸":"펀넬 지휘 · 펀넬 피해 +35%","브라이트 노아":"함대 지휘 · 연방 기체 공격력 +12%","세일라 마스":"화이트베이스 생존자 · 공격 속도 +18%","라라아 순":"뉴타입 공명 · 사거리 +12%, 공격력 +10%","코우 우라키":"끝까지 버틴다 · 보스 대상 피해 +30%","애너벨 가토":"솔로몬의 악몽 · 보스 대상 피해 +25%"};
+const PORTRAIT_STYLE={"아무로 레이":{hair:"#c8a36d",coat:"#294a72",accent:"#e7e1ce",mark:"연방 파일럿"},"샤아 아즈나블":{hair:"#c87979",coat:"#8d2634",accent:"#eed49c",mark:"붉은 혜성"},"카미유 비단":{hair:"#42352f",coat:"#325b7a",accent:"#d1a748",mark:"에우고"},"쥬도 아시타":{hair:"#542e20",coat:"#b74338",accent:"#eee1d2",mark:"건담 팀"},"바나지 링크스":{hair:"#c8c6a8",coat:"#455d60",accent:"#e8e5d7",mark:"유니콘의 파일럿"},"풀 프론탈":{hair:"#aa3845",coat:"#762735",accent:"#e2bd6d",mark:"네오지온"},"하만 칸":{hair:"#ded5df",coat:"#d8cfdf",accent:"#a381b4",mark:"액시즈"},"콰트로 바지나":{hair:"#b97746",coat:"#762b25",accent:"#e1c658",mark:"에우고"},"브라이트 노아":{hair:"#b9a78f",coat:"#354a63",accent:"#c8d3dc",mark:"연방 함대"},"세일라 마스":{hair:"#e6c783",coat:"#d6bd83",accent:"#f1e8d0",mark:"화이트베이스"},"라라아 순":{hair:"#382f55",coat:"#594b76",accent:"#d9c7ee",mark:"뉴타입"},"코우 우라키":{hair:"#aa8f72",coat:"#476571",accent:"#d5d8d2",mark:"시험부대"},"애너벨 가토":{hair:"#4b4542",coat:"#53617b",accent:"#d1dce9",mark:"데라즈 함대"}};
 const UNITS=[
   {id:"gm",        name:"RGM-79 짐",                 grade:"common", race:"fed",  role:"single", atk:12,  rate:0.95, range:250, weapon:"beam",  bio:"연방의 양산 주력기. 머리의 바이저와 빔 사ベル이 특징이다.", shape:"gm"},
   {id:"zaku2",     name:"MS-06F 자쿠 II",             grade:"common", race:"zeon", role:"single", atk:11,  rate:1.15, range:240, weapon:"bullet", bio:"지온의 상징. 모노아이와 우측 스파이크 숄더로 한눈에 알아볼 수 있다.", shape:"zaku"},
@@ -383,20 +393,21 @@ const RECIPES=[
   {id:"axisfall",  name:"액시즈 공방전",    needs:["nu","sazabi","zz"], out:"axisfall",  blurb:"ν건담 + 사자비 + ZZ건담"}
 ];
 const STORY_INTRO=[
-  {who:"나레이터", id:"narr", tx:"우주세기 0088년. 그리프스 전역의 포성이 채 가시지 않은 사이, 변방 콜로니 아르카디아가 통신 두절에 빠졌다. 궤도 위에 적의 그림자가 끝없이 맴돌기 시작했다."},
-  {who:"통신사관 미라 세이", id:"mira", tx:"제7방위대, 미확인 화력이 외벽을 반복 통과합니다! 레온 중위, 주둔 전력만으로는 한도를 버틸 수 없어요."},
-  {who:"중위 레온 카이", id:"leon", tx:"보급은 늦고 적 수는 끝이 없다… 격납고의 예비 기체를 무작위로 기동시킨다. 오늘은, 운도 작전의 일부다."},
-  {who:"정비반장 고로", id:"goro", tx:"같은 기체 세 기를 붙이면 상위 기체가 튀어나온다네. 화이트 베이스 시절부터 내려온 정비 비법이지. 머릿수를 믿게."},
-  {who:"네오지온 지휘관 브란 카덱", id:"bran", tx:"콜로니의 빛은 액시즈의 그림자에 삼켜질 것이다. 내가 보낸 기동병기가 너희 전장의 한도를 시험하리라."}
+  {who:"나레이션 · 우주세기 0079", id:"narr", tx:"일년전쟁의 불길 속, 아무로 레이와 샤아 아즈나블은 서로의 운명을 겨눴다. 전쟁은 끝났지만 뉴타입의 비극은 우주에 남았다."},
+  {who:"브라이트 노아", id:"leon", tx:"그리프스 전역에서 에우고와 티탄즈가 충돌한다. 카미유, 제타 건담으로 민간 콜로니를 지켜라."},
+  {who:"쥬도 아시타", id:"mira", tx:"액시즈가 지구권으로 내려온다! 우리 ZZ와 동료들의 힘을 모아야 해."},
+  {who:"아무로 레이", id:"narr", tx:"샤아의 반란을 막기 위해 ν건담을 맡겠다. 사람의 마음의 빛을 믿어 보자."},
+  {who:"바나지 링크스", id:"goro", tx:"라플라스의 상자와 유니콘의 가능성… 전쟁의 끝을 바꾸기 위해 출격합니다."}
 ];
 const STORY_CH={
-  10:{who:"브란 카덱", id:"bran", tx:"먼저, 움직이는 요새를 받아라. 빅잠이다! 그 거체 앞에서 양산기가 무슨 소용인가."},
-  20:{who:"미라 세이", id:"mira", tx:"사이코 건담이 내벽을 걷고 있습니다! 거대 MA가 콜로니 안쪽을 향해요!"},
-  30:{who:"브란 카덱", id:"bran", tx:"노이에 질의 팔이 궤도 전체를 쓸어버리리라. 도망칠 좌표는 없다."},
-  40:{who:"브란 카덱", id:"bran", tx:"내가 탄 알파 아지르가 아르카디아의 종언이다. 연방의 방패여, 이번엔 버틸 수 있겠나."}
+  10:{who:"도즐 자비 · 빅잠", id:"bran", tx:"빅잠, 출격! 도즐 자비의 거대한 요새가 일년전쟁의 공포를 되살린다."},
+  20:{who:"애너벨 가토 · 덴드로비움", id:"leon", tx:"솔로몬의 악몽, 애너벨 가토가 덴드로비움으로 진입한다!"},
+  30:{who:"애너벨 가토 · 노이에 질", id:"bran", tx:"가토의 노이에 질이 궤도를 장악했다. 별의 바다에서 결전을 치른다."},
+  40:{who:"풀 프론탈 · 시난주", id:"bran", tx:"라플라스의 상자를 둘러싼 최종 결전! 풀 프론탈이 시난주를 몰고 온다."}
 };
-const STORY_WIN={who:"레온 카이", id:"leon", tx:"아르카디아, 아직 살아 있다. 오늘 산화한 기체들의 이름을 기록에 남긴다. 콜로니의 아침은… 우리가 지켰다."};
-const STORY_LOSE={who:"레온 카이", id:"leon", tx:"통신이… 끊긴다. 외벽이 무너진다. 조금만 더, 기체를 모을 수 있었다면…"};
+const BOSS_PILOT={bigzam:"도즐 자비",apsaras:"애너벨 가토",neue:"애너벨 가토",dendrobium:"코우 우라키",azieru:"풀 프론탈"};
+const STORY_WIN={who:"브라이트 노아",id:"leon",tx:"살아남은 기체와 조종사들의 이름을 기록하라. 우주세기의 내일은 아직 열려 있다."};
+const STORY_LOSE={who:"브라이트 노아",id:"leon",tx:"방어선이 무너졌다… 그러나 그들의 의지는 다음 세대에 이어질 것이다."};
 const LS_BEST="uc-rd-best", LS_CODEX="uc-rd-codex", LS_MUTE="uc-rd-mute", LS_PROFILES="uc-rd-profiles", LS_ACTIVE="uc-rd-active-id", LS_VOL="uc-rd-bgmvol";
 function mulberry(seed){let s=seed|0;return function(){s|=0;s=s+0x6D2B79F5|0;let t=Math.imul(s^s>>>15,1|s);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
 function pick(arr,rng){return arr[Math.floor((rng||Math.random)()*arr.length)]}
@@ -1068,13 +1079,17 @@ function drawPortrait(c, who){
   p.strokeStyle="rgba(180,200,220,.22)"; p.lineWidth=3;
   p.beginPath(); p.ellipse(w*0.8,h*0.3,w*0.25,h*0.08, -0.2,0,Math.PI*2); p.stroke();
   p.save(); p.translate(w*0.5, h*0.72); p.scale(2.3,2.3);
-  if(who==="leon"){
-    p.fillStyle="#d8c8a8"; p.beginPath(); p.arc(0,-18,16,0,Math.PI*2); p.fill();
-    p.fillStyle="#2c4c7a"; p.fillRect(-17,0,34,30);
-    p.fillStyle="#d7b15a"; p.fillRect(-17,0,34,5);
-    p.fillStyle="#1a1a1a"; p.beginPath(); p.arc(-5,-20,2.1,0,Math.PI*2); p.fill(); p.beginPath(); p.arc(5,-20,2.1,0,Math.PI*2); p.fill();
-    p.strokeStyle="#1a1a1a"; p.lineWidth=1; p.beginPath(); p.moveTo(-3,-12); p.lineTo(3,-12); p.stroke();
-  } else if(who==="mira"){
+  const pilot=Object.keys(PORTRAIT_STYLE).find(n=>who.includes(n)), style=pilot&&PORTRAIT_STYLE[pilot];
+  if(style){
+    p.fillStyle=style.coat;p.beginPath();p.moveTo(-32,54);p.lineTo(-27,5);p.lineTo(-15,-3);p.lineTo(0,4);p.lineTo(16,-3);p.lineTo(28,5);p.lineTo(34,54);p.closePath();p.fill();
+    p.fillStyle=style.accent;p.fillRect(-25,5,50,4);p.fillStyle=style.coat;p.beginPath();p.moveTo(-8,6);p.lineTo(0,20);p.lineTo(8,6);p.lineTo(3,5);p.lineTo(0,11);p.lineTo(-3,5);p.closePath();p.fill();
+    p.fillStyle=skin;p.beginPath();p.ellipse(0,-22,17,23,0,0,Math.PI*2);p.fill();
+    p.fillStyle=style.hair;p.beginPath();p.moveTo(-18,-24);p.quadraticCurveTo(-20,-47,0,-46);p.quadraticCurveTo(21,-44,18,-20);p.lineTo(10,-26);p.lineTo(4,-20);p.lineTo(-3,-26);p.lineTo(-11,-18);p.lineTo(-14,-7);p.lineTo(-19,-12);p.closePath();p.fill();
+    p.fillStyle="#1b2028";p.beginPath();p.ellipse(-6,-22,1.8,2.2,0,0,Math.PI*2);p.ellipse(6,-22,1.8,2.2,0,0,Math.PI*2);p.fill();
+    p.strokeStyle="#704b43";p.lineWidth=1.4;p.beginPath();p.moveTo(-4,-10);p.quadraticCurveTo(0,-8,4,-10);p.stroke();
+    p.fillStyle=style.accent;p.fillRect(-31,24,6,12);p.fillRect(25,24,6,12);
+    p.fillStyle="#f3e0a6";p.font="bold 6px system-ui";p.textAlign="center";p.fillText(style.mark,0,47);
+  } else if(who==="leon"){
     p.fillStyle="#f0dcc8"; p.beginPath(); p.arc(0,-16,15,0,Math.PI*2); p.fill();
     p.fillStyle="#3a2a20"; p.fillRect(-17,-30,34,12);
     p.fillStyle="#3d5c52"; p.fillRect(-16,0,32,28);
@@ -1129,7 +1144,7 @@ const WFX={
 
 let rng=Math.random;
 let S=null;
-let ui={shopSel:null, hover:null, toastT:0, gacha:null, paused:false, speed:1, muted:true, storyI:0, pendingStory:null, freezeGacha:false, drag:null, announceT:0};
+let ui={shopSel:null, hover:null, toastT:0, gacha:null, paused:false, speed:1, muted:true, storyI:0, pendingStory:null, freezeGacha:false, drag:null, announceT:0, showDamage:true, spectate:null};
 let audioCtx=null;
 let bestAll={easy:0,normal:0,hard:0,hell:0};
 let codex={};
@@ -1229,6 +1244,7 @@ function emptyState(diff){
     units: [], enemies: [], shots: [], fx: [], nums: [],
     upg: Object.fromEntries(RACES.map(r=>[r.id,0])),
     waveActive:false, boss:null, mission:null, won:false, lost:false, over:false,
+    fxOn:localStorage.getItem("uc-rd-fx")!=="0", shake:0, hitFlash:0,
     nextId:1, timeAcc:0, killGold:0, autoMerge:true, autoPlace:true,
     spawnQ: [], spawnT:0, roundDur:0, _gap:0, _shownCh:null, eliminated:false
   };
@@ -1418,6 +1434,21 @@ function hideGacha(){document.getElementById("gacha").classList.remove("show")}
 function roleName(d){
   return {single:"단일 공격", splash:"광역", slow:"감속", stun:"기절", aura:"강화 오라", break:"방어 관통"}[d.role]||d.role;
 }
+function pilotInfo(id){const name=PILOTS[id]||"정규 승무원";return name+(PILOT_SKILL[name]?" · "+PILOT_SKILL[name]:"")}
+function drawPortrait(c, who){
+  const p=c.getContext("2d"), w=c.width,h=c.height;
+  p.clearRect(0,0,w,h);const g=p.createLinearGradient(0,0,w,h);g.addColorStop(0,"#101a2b");g.addColorStop(1,"#261b2a");p.fillStyle=g;p.fillRect(0,0,w,h);
+  for(let i=0;i<46;i++){p.fillStyle="rgba(220,235,255,.55)";p.fillRect((i*79)%w,(i*43)%h,2,2)}
+  const skin="#dfc2ae",key=who.includes("아무로")?"아무로 레이":who.includes("샤아")?"샤아 아즈나블":who.includes("카미유")?"카미유 비단":who.includes("쥬도")?"쥬도 아시타":who.includes("바나지")?"바나지 링크스":who.includes("프론탈")?"풀 프론탈":who.includes("하만")?"하만 칸":who.includes("콰트로")?"콰트로 바지나":who.includes("브라이트")?"브라이트 노아":who.includes("세일라")||who.includes("세이라")?"세일라 마스":who.includes("라라")?"라라아 순":who.includes("코우")?"코우 우라키":who.includes("가토")?"애너벨 가토":"아무로 레이",style=PORTRAIT_STYLE[key];
+  p.save();p.translate(w*.5,h*.7);p.scale(2.1,2.1);
+  p.fillStyle=style.coat;p.beginPath();p.moveTo(-35,52);p.lineTo(-28,8);p.lineTo(-14,-3);p.lineTo(0,5);p.lineTo(14,-3);p.lineTo(28,8);p.lineTo(35,52);p.closePath();p.fill();
+  p.fillStyle=style.accent;p.fillRect(-28,8,56,4);p.fillStyle=style.coat;p.beginPath();p.moveTo(-8,10);p.lineTo(0,23);p.lineTo(8,10);p.lineTo(3,8);p.lineTo(0,14);p.lineTo(-3,8);p.closePath();p.fill();
+  p.fillStyle=skin;p.beginPath();p.ellipse(0,-20,18,23,0,0,Math.PI*2);p.fill();p.fillStyle=style.hair;p.beginPath();p.moveTo(-18,-21);p.quadraticCurveTo(-22,-47,0,-48);p.quadraticCurveTo(22,-44,18,-20);p.lineTo(10,-26);p.lineTo(3,-19);p.lineTo(-3,-27);p.lineTo(-12,-17);p.closePath();p.fill();
+  p.fillStyle="#20252a";p.beginPath();p.ellipse(-6,-20,1.8,2.2,0,0,Math.PI*2);p.ellipse(6,-20,1.8,2.2,0,0,Math.PI*2);p.fill();p.strokeStyle="#714f48";p.lineWidth=1;p.beginPath();p.moveTo(-4,-9);p.quadraticCurveTo(0,-7,4,-9);p.stroke();
+  p.fillStyle=style.accent;p.fillRect(-31,25,6,13);p.fillRect(25,25,6,13);p.restore();
+  p.fillStyle=style.accent;p.font="bold 13px system-ui";p.textAlign="right";p.fillText(style.mark,w*.95,h*.93);p.textAlign="left";p.font="bold 22px system-ui";p.fillStyle="#f3e0a6";p.fillText(key,w*.06,h*.17);p.fillStyle=style.accent;p.font="12px system-ui";p.fillText(style.mark,w*.06,h*.25);return;
+  p.fillStyle="#f3e0a6";p.font="bold 22px system-ui";p.textAlign="left";p.fillText(who,w*.06,h*.17);
+}
 
 function isShowcase(id){
   const d=UMAP[id]; if(!d) return false;
@@ -1561,6 +1592,7 @@ function bossKind(n){
   if(n>=50) return "azieru";
   return "bigzam";
 }
+function bossPilot(kind){return ({bigzam:"도즐 자비",apsaras:"아이나 사하린 · 기니어 사하린",neue:"애너벨 가토",dendrobium:"코우 우라키 대 애너벨 가토",azieru:"풀 프론탈"})[kind]||"미확인 조종사"}
 function isBossRound(n){return n>0 && n%10===0}
 function fmtTime(sec){
   sec=Math.max(0, Math.ceil(sec||0));
@@ -1576,10 +1608,10 @@ function enemyDef(kind, round){
     tank:  {hp:720, spd:0.044,gold:13,r:18, color:"#6b3d86"},
     boss:  {hp:1, spd:0.034, gold:160, r:54, color:"#5a6350", boss:true}
   };
-  const bossHP={bigzam:52000, apsaras:170000, neue:380000, dendrobium:760000, azieru:980000};
+  const bossHP={bigzam:52000, apsaras:170000, neue:720000, dendrobium:1500000, azieru:1900000};
   const e={...(bases[kind==="boss"? "boss": kind]||bases.normal)};
   if(kind==="boss"){
-    e.hp=Math.round((bossHP[look.vis]||48000)*d.hp);
+    e.hp=Math.round((bossHP[look.vis]||48000)*d.hp*(look.vis==="dendrobium"?1.35:look.vis==="neue"?1.15:1));
     e.r = look.vis==="dendrobium"?62: look.vis==="apsaras"?56: look.vis==="neue"?58:54;
     e.gold=Math.round((look.vis==="dendrobium"?420:look.vis==="neue"?300:look.vis==="apsaras"?220:150)*d.goldMul);
     e.spd=0.032*d.spd;
@@ -1650,7 +1682,8 @@ function startRound(fromHost){
   if(isBossRound(S.round)){
     const look=enemyLook("boss", S.round);
     S.boss = look.vis;
-    toast(look.label+" 등장! 3분 안에 격파하세요", 2200);
+    if(S.fxOn){S.shake=0.38;burst(LW/2,LH/2,"#f3b25a",28,125)}
+    toast(bossPilot(look.vis)+" · "+look.label+" 등장! 3분 안에 격파하세요", 2600);
   }
   beep(480,.07,"triangle",.04);
   if(typeof startBgmForRound==="function") startBgmForRound(S.round, !!S.boss, S.boss);
@@ -1693,13 +1726,15 @@ function spawnOne(kind){
 }
 function auraMul(){
   let a=1;
-  for(const u of S.units){ if(!isField(u.slot)) continue; const d=UMAP[u.id]; if(d.aura) a+=d.aura}
+  for(const u of S.units){ if(!isField(u.slot)) continue; const d=UMAP[u.id], pilot=PILOTS[u.id]; if(d.aura) a+=d.aura; if(pilot==="바나지 링크스") a+=0.12; if(pilot==="브라이트 노아"&&d.race==="fed") a+=0.12}
   return a;
 }
-function unitDmg(u){
-  const d=UMAP[u.id];
+function unitDmg(u,target){
+  const d=UMAP[u.id], pilot=PILOTS[u.id]||"승무원";
   const up=1+0.11*(S.upg[d.race]||0);
-  return d.atk*up*auraMul();
+  let passive=pilot==="카미유 비단"?1.25:pilot==="하만 칸"&&d.weapon==="funnel"?1.35:pilot==="세일라 마스"?1.18:pilot==="라라아 순"?1.10:1;
+  if((pilot==="코우 우라키"||pilot==="애너벨 가토")&&target&&target.isBoss)passive*=pilot==="코우 우라키"?1.30:1.25;
+  return d.atk*up*auraMul()*passive;
 }
 function acquire(u){
   if(!isField(u.slot)) return null;
@@ -1716,8 +1751,13 @@ function acquire(u){
   return best;
 }
 function fire(u,e){
-  const d=UMAP[u.id], p=slotPos(u.slot), ep=posOnTrack(e.prog);
-  u.cool=1/d.rate; u.anim=0.18;
+  const d=UMAP[u.id], pilot=PILOTS[u.id]||"";
+  const p=slotPos(u.slot), ep=posOnTrack(e.prog);
+  u.cool=1/(d.rate*(pilot==="샤아 아즈나블"?3:pilot==="풀 프론탈"?1.5:1));
+  if(pilot==="하만 칸" && d.weapon==="funnel") u.cool*=.75;
+  if(pilot==="세일라 마스")u.cool*=.82;
+  if(pilot==="라라아 순")u.cool*=.92;
+  u.anim=0.18;
   const wfx=WFX[d.weapon]||WFX.beam;
   const n = d.weapon==="funnel" ? (GMAP[d.grade].rank>=4?6:GMAP[d.grade].rank>=3?5:4) : 1;
   for(let i=0;i<n;i++){
@@ -1727,7 +1767,7 @@ function fire(u,e){
       x:p.x+Math.cos(ang+Math.PI/2)*spread,
       y:p.y+Math.sin(ang+Math.PI/2)*spread,
       tx:ep.x, ty:ep.y, target:e.eid, id:u.id,
-      spd:wfx.spd+i*16, dmg:unitDmg(u)*(n>1?1.12/n:1),
+      spd:wfx.spd+i*16, dmg:unitDmg(u,e)*(n>1?1.12/n:1)*(pilot==="쥬도 아시타"?1.2:1), crit:pilot==="아무로 레이"&&Math.random()<0.18,
       splash:(d.splash||0)*(n>1?0.55:1), slow:d.slow||0, slowDur:d.slowDur||0,
       stun:d.stun||0, brk:d.armorBreak||0, chain:d.chain||0,
       color:wfx.color, style:wfx.style, phase:i*1.15, weapon:d.weapon
@@ -1739,12 +1779,14 @@ function applyHit(e, shot, now, factor){
   let mul=factor||1;
   if(e.brokenUntil>now) mul*=1.28;
   if(shot.brk) e.brokenUntil=Math.max(e.brokenUntil, now+3);
-  e.hp-=shot.dmg*mul;
+  const dealt=shot.dmg*mul*(shot.crit?2.2:1);
+  e.hp-=dealt;
+  if(S&&S.fxOn){S.hitFlash=Math.max(S.hitFlash||0,0.12);if(e.isBoss)S.shake=Math.max(S.shake||0,0.16)}
   if(shot.slow){e.slowF=Math.min(e.slowF,1-shot.slow); e.slowUntil=Math.max(e.slowUntil, now+shot.slowDur)}
   if(shot.stun) e.stunUntil=Math.max(e.stunUntil, now+shot.stun);
   const p=posOnTrack(e.prog);
-  S.nums.push({x:p.x,y:p.y, v:"-"+Math.round(shot.dmg*mul), t:0.6, c:"#fff"});
-  burst(p.x,p.y, shot.color, 5, 40);
+  if(ui.showDamage) S.nums.push({x:p.x,y:p.y, v:"-"+Math.round(dealt), t:0.6, c:shot.crit?"#8eeaff":"#fff"});
+  burst(p.x,p.y, shot.color, e.isBoss?9:5, e.isBoss?65:40);
   if(e.hp<=0) killEnemy(e);
 }
 function hitShot(s, now){
@@ -1784,6 +1826,7 @@ function killEnemy(e){
   if(e.isBoss||e.isMission) beep(840,.12,"triangle",.05);
 }
 function burst(x,y,color,n,pow){
+  if(!S||!S.fxOn)return;
   for(let i=0;i<n;i++){
     const a=Math.random()*Math.PI*2, s=(0.4+Math.random())*pow;
     S.fx.push({x,y,vx:Math.cos(a)*s,vy:Math.sin(a)*s,t:0.4+Math.random()*0.3,max:0.7,color,sz:1.6+Math.random()*2.2});
@@ -1903,6 +1946,7 @@ function tickFx(dt){
   if(!S) return;
   for(const p of S.fx){p.t-=dt;p.x+=p.vx*dt;p.y+=p.vy*dt;p.vy+=80*dt}
   S.fx=S.fx.filter(p=>p.t>0);
+  S.shake=Math.max(0,(S.shake||0)-dt);S.hitFlash=Math.max(0,(S.hitFlash||0)-dt);
   for(const n of S.nums){n.t-=dt;n.y-=28*dt}
   S.nums=S.nums.filter(n=>n.t>0);
 }
@@ -1945,6 +1989,7 @@ function resize(){
 function draw(){
   if(!cx) return;
   cx.clearRect(0,0,LW,LH);
+  if(S&&S.fxOn&&S.shake>0){const m=S.shake*24;cx.save();cx.translate((Math.random()-.5)*m,(Math.random()-.5)*m)}
   const bg=cx.createLinearGradient(0,0,0,LH);
   bg.addColorStop(0,"#0c1422"); bg.addColorStop(0.55,"#0a1018"); bg.addColorStop(1,"#070b12");
   cx.fillStyle=bg; cx.fillRect(0,0,LW,LH);
@@ -2020,6 +2065,8 @@ function draw(){
   cx.fillStyle="#d7b15a"; cx.font="bold 12px system-ui"; cx.textAlign="left";
   cx.fillText("시계방향 궤도", 16, 22);
   cx.textAlign="right"; cx.fillText("개인 맵 · 배치 슬롯", LW-16, LH-14);
+  if(S&&S.fxOn&&S.hitFlash>0){cx.fillStyle="rgba(255,246,218,"+Math.min(.18,S.hitFlash*.9)+")";cx.fillRect(0,0,LW,LH)}
+  if(S&&S.fxOn&&S.shake>0)cx.restore();
   if(S && S.waveActive && !S.over){
     cx.textAlign="center";
     cx.font="bold 18px system-ui";
@@ -2037,7 +2084,8 @@ function drawShot(s){
   const x=s.x+(s._ox||0), y=s.y+(s._oy||0);
   const ang=Math.atan2(s.ty-s.y,s.tx-s.x);
   cx.translate(x,y); cx.rotate(ang);
-  cx.shadowColor=s.color; cx.shadowBlur=12;
+  cx.shadowColor=s.color; cx.shadowBlur=S&&S.fxOn?18:0;
+  if(S&&S.fxOn&&(s.style==="beam"||s.style==="mega"||s.style==="magnum")){cx.globalAlpha=.28;cx.fillStyle=s.color;cx.beginPath();cx.ellipse(0,0,28,s.style==="mega"?13:7,0,0,Math.PI*2);cx.fill();cx.globalAlpha=1}
   if(s.style==="beam"){
     cx.fillStyle=s.color;
     cx.beginPath(); cx.ellipse(0,0,16,2.2,0,0,Math.PI*2); cx.fill();
@@ -2182,7 +2230,7 @@ function renderSel(){
   const where=isField(u.slot)?(slotPos(u.slot).ring==="outer"?"전방 슬롯":"후방 슬롯"):"대기열";
   box.innerHTML='<h3 style="color:'+g.color+'">'+d.name+'</h3>'+
     (d.hidden?'<div style="color:#f3e0a6">히든</div>':'')+
-    g.name+' · '+RMAP[d.race].name+' · '+roleName(d)+' · '+where+'<br>'+
+    g.name+' · '+RMAP[d.race].name+' · '+roleName(d)+' · '+where+'<br><b class="pilot-id">조종사: '+pilotInfo(u.id)+'</b><br>'+
     '공격 '+Math.round(unitDmg(u))+' · 초당 '+d.rate.toFixed(2)+'회 · 사거리 '+d.range+
     (d.splash?' · 광역 '+d.splash:'')+(d.slow?' · 감속 '+Math.round(d.slow*100)+'%':'')+(d.aura?' · 오라 +'+Math.round(d.aura*100)+'%':'')+
     '<br><span style="color:var(--muted)">'+d.bio+'</span>'+
@@ -2293,6 +2341,9 @@ document.getElementById("btnSpeed").onclick=()=>{
   ui.speed=ui.speed===1?2:ui.speed===2?3:1; syncUI();
   if(net.mode==="host" && typeof netBroadcast==="function") netBroadcast({type:"speed", speed:ui.speed});
 };
+document.getElementById("btnDamage").onclick=()=>{ui.showDamage=!ui.showDamage;const b=document.getElementById("btnDamage");b.classList.toggle("on",ui.showDamage);b.textContent=ui.showDamage?"피해 표시":"피해 숨김"};
+document.getElementById("btnEffects").onclick=()=>{if(!S)return;S.fxOn=!S.fxOn;localStorage.setItem("uc-rd-fx",S.fxOn?"1":"0");const b=document.getElementById("btnEffects");b.classList.toggle("on",S.fxOn);b.textContent=S.fxOn?"연출 켜기":"연출 끄기";syncUI();draw()};
+document.addEventListener("keydown",ev=>{if(ev.key==="Escape"&&ui.spectate){ui.spectate=null;renderPeers()}});
 document.getElementById("btnPause").onclick=()=>{
   if(!S||S.over) return;
   if(net.mode==="client"){toast("일시정지는 호스트만 할 수 있어요"); return}
@@ -2501,14 +2552,17 @@ function snapshot(){
 }
 function compactState(){
   if(!S) return {type:"state", none:true};
+  const enemyPos=S.enemies.slice(0,120).map(e=>[+e.prog.toFixed(4),Math.round(clamp(e.hp/e.maxHp,0,1)*100),e.isBoss?1:0]);
+  const slots=S.units.filter(u=>isField(u.slot)).map(u=>[u.slot,u.id]);
+
   const field=S.units.filter(u=>isField(u.slot));
   const top=field.slice().sort((a,b)=>GMAP[UMAP[b.id].grade].rank-GMAP[UMAP[a.id].grade].rank).slice(0,3);
   return {
     type:"state",
-    enemies:S.enemies.length, cap:S.cap, gold:S.gold, round:S.round, time:S.time,
+    enemies:S.enemies.length, enemyPos, cap:S.cap, gold:S.gold, round:S.round, time:S.time,
     alive:!S.lost, over:S.over, won:!!S.won, lost:!!S.lost,
     field:field.length,
-    units:S.units.map(u=>({id:u.id,slot:u.slot})),
+    units:slots.map(([slot,id])=>({id,slot})),
     top: top.map(u=>({id:u.id,name:UMAP[u.id].name,grade:UMAP[u.id].grade}))
   };
 }
@@ -2958,7 +3012,7 @@ function netSendAnnounce(rec){
 function netSendState(force){
   if(net.mode==="solo" || !S) return;
   const now=performance.now();
-  if(!force && now-(net._stAt||0)<400) return;
+  if(!force && now-(net._stAt||0)<150) return;
   net._stAt=now;
   const st=compactState();
   if(net.mode==="host"){
@@ -3075,6 +3129,7 @@ function netOnTick(dt){
     netBroadcast({type:"tick", time:S.time, round:S.round, speed:ui.speed, paused:ui.paused});
   }
   netSendState(false);
+  if(net.mode==="host" && net.players.some(p=>p.id!==net.id && p.state)) renderPeers();
 }
 
 function attachPeerConn(conn, asHost){
@@ -3217,45 +3272,45 @@ function renderLobby(){
 }
 function renderPeers(){
   const wrap=document.getElementById("peers");
-  if(net.mode==="solo"){ wrap.hidden=true; wrap.innerHTML=""; return; }
+  if(net.mode==="solo"){ wrap.hidden=true; wrap.innerHTML=""; document.getElementById("stage").classList.remove("spectating","spectate-remote");const cv=document.getElementById("spectateCv");if(cv)cv.remove();return; }
   const others=net.players.filter(p=>p.id!==net.id);
-  if(!others.length && !S){ wrap.hidden=true; return; }
+  if(!net.players.length && !S){ wrap.hidden=true; return; }
+  if(!net.players.length&&S){wrap.hidden=false;wrap.innerHTML='<div class="peer-toolbar" style="grid-column:1/-1;color:var(--muted);font-size:11px">전우가 아직 없습니다 · 내 방어 전장</div><div class="peer-card me" data-pid="'+net.id+'"><div class="pn">'+(net.name||"나")+' (나)</div><div class="pm">R'+S.round+' · 전장 '+S.enemies.length+'/'+S.cap+' · 기체 '+S.units.filter(u=>isField(u.slot)).length+'</div><canvas width="160" height="90"></canvas></div>';const mine=wrap.querySelector('canvas');paintPeerMini(mine,{state:compactState()});wrap.querySelector('.peer-card').onclick=()=>{ui.spectate=ui.spectate===net.id?null:net.id;renderPeers()};return;}
   wrap.hidden=false;
-  wrap.innerHTML=net.players.map(p=>{
+  wrap.innerHTML='<div class="peer-toolbar" style="grid-column:1/-1;display:flex;align-items:center;justify-content:space-between;color:var(--muted);font-size:11px"><span>실시간 전장 · '+net.players.length+' / 8</span><button class="btn ghost" id="btnReturnSpectate" type="button" '+(ui.spectate?'':'hidden')+'>내 전장으로 돌아가기 (Esc)</button></div>'+net.players.map(p=>{
     const st=p.state||{};
     const dead=st.lost || p.alive===false;
     const tops=(st.top||[]).map(t=>t.name).join(" · ")||"배치 없음";
-    return '<div class="peer-card '+(p.id===net.id?"me":"")+(dead?" dead":"")+'">'+
+    return '<div class="peer-card '+(p.id===net.id?"me":"")+(dead?" dead":"")+(ui.spectate===p.id?" spectating":"")+'" data-pid="'+p.id+'">'+
       '<div class="pn">'+(p.host?"★ ":"")+(p.name||"?")+(p.id===net.id?" (나)":"")+'</div>'+
       '<div class="pm">R'+(st.round|| (S&&p.id===net.id?S.round:0))+' · 전장 '+(st.enemies||0)+'/'+(st.cap||"-")+' · 기체 '+(st.field||0)+'</div>'+
       '<canvas width="160" height="54" data-pid="'+p.id+'"></canvas>'+
       '<div class="tops">'+(dead?"탈락":(st.won?"클리어":tops))+'</div></div>';
   }).join("");
   wrap.querySelectorAll("canvas").forEach(cv=>{
-    const pid=cv.dataset.pid;
-    const p=net.players.find(x=>x.id===pid);
+    const pid=cv.dataset.pid, p=net.players.find(x=>x.id===pid);
     paintPeerMini(cv, p);
   });
+  wrap.querySelectorAll(".peer-card").forEach(card=>card.onclick=()=>{ui.spectate=card.dataset.pid===net.id||ui.spectate===card.dataset.pid?null:card.dataset.pid;renderPeers()});
+  const back=document.getElementById("btnReturnSpectate"); if(back) back.onclick=()=>{ui.spectate=null;renderPeers()};
+  if(!wrap._spectateKeys){wrap._spectateKeys=true;document.addEventListener("keydown",ev=>{if(ev.key==="Escape"&&ui.spectate){ui.spectate=null;renderPeers()}})}
+  wrap.classList.toggle("spectating",!!ui.spectate); const active=ui.spectate&&net.players.find(p=>p.id===ui.spectate); document.getElementById("stage").classList.toggle("spectating",!!active); if(active&&active.id!==net.id) document.getElementById("stage").classList.add("spectate-remote"); else document.getElementById("stage").classList.remove("spectate-remote");
+  if(active&&active.id!==net.id){let cv=document.getElementById("spectateCv");if(!cv){cv=document.createElement("canvas");cv.id="spectateCv";cv.width=LW;cv.height=LH;cv.setAttribute("aria-label","선택한 참가자 전장 관전");document.getElementById("stage").appendChild(cv)}paintPeerMini(cv,active)} else {const cv=document.getElementById("spectateCv");if(cv)cv.remove()}
 }
 function paintPeerMini(cv, pl){
-  const p=cv.getContext("2d");
-  p.clearRect(0,0,cv.width,cv.height);
-  p.fillStyle="#0a1018"; p.fillRect(0,0,cv.width,cv.height);
-  p.strokeStyle="#3d5470"; p.lineWidth=3;
-  p.strokeRect(4,4,cv.width-8,cv.height-8);
-  const units=(pl && pl.state && pl.state.units)||[];
-  units.forEach((u,i)=>{
-    if(u.slot==null || u.slot>=FIELD_N) return;
-    const sp=slotPosList[u.slot]||{x:0,y:0};
-    const x=6+(sp.x/LW)*(cv.width-12);
-    const y=6+(sp.y/LH)*(cv.height-12);
-    const g=UMAP[u.id]?GMAP[UMAP[u.id].grade]:null;
-    p.fillStyle=g?g.color:"#9aa";
-    p.beginPath(); p.arc(x,y,3,0,Math.PI*2); p.fill();
-  });
-  const en=pl&&pl.state?pl.state.enemies:0;
-  p.fillStyle="#e35d4a";
-  for(let i=0;i<Math.min(8,en);i++) p.fillRect(8+i*6, cv.height-8, 4, 3);
+  const p=cv.getContext("2d"), st=pl&&pl.state||{};
+  const w=cv.width,h=cv.height, scale=Math.min(w/LW,h/LH), ox=(w-LW*scale)/2, oy=(h-LH*scale)/2;
+  p.clearRect(0,0,w,h); p.fillStyle="#080d15"; p.fillRect(0,0,w,h);
+  p.save(); p.translate(ox,oy); p.scale(scale,scale);
+  p.fillStyle="#0b1420"; p.fillRect(0,0,LW,LH);
+  p.strokeStyle="#38506a"; p.lineWidth=32; p.strokeRect(96,96,LW-192,LH-192);
+  p.strokeStyle="#d7b15a"; p.lineWidth=2; p.strokeRect(96,96,LW-192,LH-192);
+  for(const u of st.units||[]){const q=slotPosList[u.slot]; if(!q) continue; const g=UMAP[u.id]?GMAP[UMAP[u.id].grade]:null; p.fillStyle=g?g.color:"#9aa"; p.beginPath();p.arc(q.x,q.y,12,0,Math.PI*2);p.fill()}
+  p.fillStyle="#ff655d";
+  for(const e of st.enemyPos||[]){const q=posOnTrack(e[0]);p.beginPath();p.arc(q.x,q.y,e[2]?16:8,0,Math.PI*2);p.fill()}
+  p.fillStyle="#f3e0a6";p.font="bold 24px system-ui";p.fillText("R"+(st.round||0)+" · "+fmtTime(st.time||0),24,38);
+  if(st.lost){p.fillStyle="rgba(20,0,0,.55)";p.fillRect(0,0,LW,LH);p.fillStyle="#ff8a7a";p.textAlign="center";p.font="bold 42px system-ui";p.fillText("탈락",LW/2,LH/2)}
+  p.restore();
 }
 
 function netHostStart(diff){
