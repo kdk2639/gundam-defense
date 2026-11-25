@@ -38,20 +38,21 @@ button{font-family:inherit;cursor:pointer;color:inherit}
 .btn.ghost{background:transparent}
 .btn.on{border-color:var(--gold);color:var(--gold2);box-shadow:0 0 0 1px var(--gold) inset}
 .btn.hell{background:linear-gradient(180deg,#5a1820,#2a0a10);border-color:#e35d4a;color:#ffc8c8}
-.peers{display:grid;grid-template-columns:repeat(2,minmax(90px,1fr));grid-auto-rows:min-content;align-content:start;gap:6px;overflow:auto;padding:2px 0;min-height:0;max-height:100%;flex:1;min-width:0}.peer-toolbar{grid-column:1/-1}.peer-card.spectating{grid-column:1/-1}
+.peers{position:fixed;z-index:9;bottom:12px;left:50%;transform:translateX(-50%);width:min(560px,94vw);max-height:38vh;display:grid;grid-template-columns:repeat(2,minmax(90px,1fr));grid-auto-rows:min-content;align-content:start;gap:6px;overflow:auto;padding:7px;background:rgba(7,11,18,.92);border:1px solid var(--line);border-radius:12px;box-shadow:0 8px 30px #0009}.peer-toolbar{grid-column:1/-1;cursor:pointer}.peers{grid-template-columns:repeat(auto-fill,minmax(120px,1fr))!important}.peers .self-peer{display:none!important}.peers.collapsed{width:auto;padding:5px 10px}.peers.collapsed>:not(.peer-toolbar){display:none!important}.peer-card.spectating{grid-column:1/-1}
 .peer-card{min-width:0;background:linear-gradient(180deg,#151c28,#0e141e);border:1px solid var(--line);border-radius:10px;padding:5px 7px;font-size:11px;cursor:pointer;transition:.2s}
 .peer-card canvas{width:100%;height:60px;background:#0a1018;border-radius:6px;display:block}
 .peer-card.spectating{grid-column:1/-1;border-color:var(--gold)}
-.peer-card.spectating canvas{height:min(30vh,230px)}
+.peer-card.spectating canvas{height:60px}
+.spectate-overlay{position:fixed;inset:0;z-index:30;background:rgba(0,0,0,.84);display:none;place-items:center;padding:18px}.spectate-overlay.show{display:grid}.spectate-modal{width:min(1100px,96vw);height:min(760px,92vh);background:#0b111b;border:1px solid var(--gold);border-radius:14px;padding:12px;display:flex;flex-direction:column;gap:8px}.spectate-head{display:flex;justify-content:space-between;align-items:center;gap:8px}.spectate-canvas{width:100%;height:100%;min-height:0;object-fit:contain;background:#070b12;border-radius:8px}
+@media(max-width:860px){.peers{top:auto;right:8px;bottom:8px;width:min(240px,64vw);max-height:22vh}.peer-card{padding:3px;font-size:9px}.peer-card .tops{display:none}.peer-card canvas{height:46px}}
 @media(max-width:860px){.peers{grid-template-columns:repeat(4,minmax(66px,1fr));max-height:16vh}.peer-card{padding:3px;font-size:9px}.peer-card .tops{display:none}.peer-card canvas{height:46px}}
 .peer-card.me{border-color:#5b87c7}
 .peer-card.dead{opacity:.55;filter:grayscale(.6)}
 .peer-card .pn{font-weight:800;color:var(--gold2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .peer-card .pm{color:var(--muted);margin:2px 0}
 .peer-card .tops{color:#c5ced6;font-size:10px;line-height:1.3;margin-top:3px;min-height:2.6em}
-.main{flex:1;display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:8px;min-height:0}.main.has-peers{grid-template-columns:minmax(0,1fr) minmax(230px,28%) 300px}.main.has-peers .stage{min-width:0}
-@media(min-width:861px){.main.has-peers{grid-template-columns:minmax(0,1fr) minmax(210px,25%) minmax(260px,300px)}}
-@media(max-width:860px){.main.has-peers{grid-template-columns:1fr;grid-template-rows:minmax(220px,1fr) minmax(80px,18vh) auto}.main.has-peers .peers{max-height:18vh}.peers{grid-template-columns:repeat(4,minmax(66px,1fr))}}
+.main{flex:1;display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:8px;min-height:0}
+@media(max-width:860px){.main{grid-template-columns:1fr;grid-template-rows:minmax(260px,1fr) auto}.peers{grid-template-columns:repeat(2,minmax(66px,1fr))}}
 .stage{position:relative;background:#070b12;border:1px solid var(--line);border-radius:12px;overflow:hidden;display:flex;align-items:center;justify-content:center;min-height:280px}
 .stage canvas{display:block;max-width:100%;max-height:100%}
 .stage.spectate-remote #cv,.stage.spectate-remote .announce,.stage.spectate-remote .alog{display:none}
@@ -170,6 +171,7 @@ button{font-family:inherit;cursor:pointer;color:inherit}
         <input id="bgmVol" type="range" min="0" max="100" value="40" />
         <span id="stBgm">BGM</span>
       </div>
+      <div class="vol-wrap" title="효과음 볼륨"><span style="font-size:10px;color:var(--muted)">효과</span><input id="sfxVol" type="range" min="0" max="100" value="28" /></div>
       <button class="btn gold" id="btnSkipRound" type="button">다음 라운드</button>
     </div>
   </header>
@@ -205,6 +207,7 @@ button{font-family:inherit;cursor:pointer;color:inherit}
     </aside>
   </div>
 </div>
+<div class="spectate-overlay" id="spectateOverlay" aria-modal="true" role="dialog"><div class="spectate-modal"><div class="spectate-head"><b id="spectateTitle">전우 전장 관전</b><button class="btn" id="btnCloseSpectate" type="button">닫기 ✕</button></div><canvas class="spectate-canvas" id="spectateOverlayCv" width="1100" height="700"></canvas></div></div>
 
 <div class="overlay" id="ovTitle">
   <div class="modal">
@@ -359,20 +362,20 @@ const PILOTS={gm:"세일라 마스",zaku2:"샤아 아즈나블",ball:"하야토 
 const PILOT_SKILL={"아무로 레이":"뉴타입 감응 · 공격 시 18% 확률로 2.2배 치명타","샤아 아즈나블":"붉은 혜성 · 공격 속도 3배","카미유 비단":"분노의 공명 · 공격력 +25%","쥬도 아시타":"강한 의지 · 광역 범위와 피해 +20%","바나지 링크스":"가능성의 빛 · 주변 아군 공격력 +12%","풀 프론탈":"붉은 혜성의 잔향 · 공격 속도 +50%","하만 칸":"펀넬 지휘 · 펀넬 피해 +35%","브라이트 노아":"함대 지휘 · 연방 기체 공격력 +12%","세일라 마스":"화이트베이스 생존자 · 공격 속도 +18%","라라아 순":"뉴타입 공명 · 사거리 +12%, 공격력 +10%","코우 우라키":"끝까지 버틴다 · 보스 대상 피해 +30%","애너벨 가토":"솔로몬의 악몽 · 보스 대상 피해 +25%"};
 const PORTRAIT_STYLE={"아무로 레이":{hair:"#c8a36d",coat:"#294a72",accent:"#e7e1ce",mark:"연방 파일럿"},"샤아 아즈나블":{hair:"#c87979",coat:"#8d2634",accent:"#eed49c",mark:"붉은 혜성"},"카미유 비단":{hair:"#42352f",coat:"#325b7a",accent:"#d1a748",mark:"에우고"},"쥬도 아시타":{hair:"#542e20",coat:"#b74338",accent:"#eee1d2",mark:"건담 팀"},"바나지 링크스":{hair:"#c8c6a8",coat:"#455d60",accent:"#e8e5d7",mark:"유니콘의 파일럿"},"풀 프론탈":{hair:"#aa3845",coat:"#762735",accent:"#e2bd6d",mark:"네오지온"},"하만 칸":{hair:"#ded5df",coat:"#d8cfdf",accent:"#a381b4",mark:"액시즈"},"콰트로 바지나":{hair:"#b97746",coat:"#762b25",accent:"#e1c658",mark:"에우고"},"브라이트 노아":{hair:"#b9a78f",coat:"#354a63",accent:"#c8d3dc",mark:"연방 함대"},"세일라 마스":{hair:"#e6c783",coat:"#d6bd83",accent:"#f1e8d0",mark:"화이트베이스"},"라라아 순":{hair:"#382f55",coat:"#594b76",accent:"#d9c7ee",mark:"뉴타입"},"코우 우라키":{hair:"#aa8f72",coat:"#476571",accent:"#d5d8d2",mark:"시험부대"},"애너벨 가토":{hair:"#4b4542",coat:"#53617b",accent:"#d1dce9",mark:"데라즈 함대"}};
 const UNITS=[
-  {id:"gm",        name:"RGM-79 짐",                 grade:"common", race:"fed",  role:"single", atk:12,  rate:0.95, range:250, weapon:"beam",  bio:"연방의 양산 주력기. 머리의 바이저와 빔 사ベル이 특징이다.", shape:"gm"},
-  {id:"zaku2",     name:"MS-06F 자쿠 II",             grade:"common", race:"zeon", role:"single", atk:11,  rate:1.15, range:240, weapon:"bullet", bio:"지온의 상징. 모노아이와 우측 스파이크 숄더로 한눈에 알아볼 수 있다.", shape:"zaku"},
-  {id:"ball",      name:"RB-79 볼",                   grade:"common", race:"fed",  role:"splash", atk:10,  rate:0.70, range:230, splash:46, weapon:"cannon", bio:"일안과 포신을 단 구형 포드. 작지만 포격은 묵직하다.", shape:"ball"},
+  {id:"gm",        name:"RGM-79 짐",                 grade:"common", race:"fed",  role:"single", atk:12,  rate:0.95, range:250, weapon:"beam_rifle",  bio:"연방의 양산 주력기. 머리의 바이저와 빔 사ベル이 특징이다.", shape:"gm"},
+  {id:"zaku2",     name:"MS-06F 자쿠 II",             grade:"common", race:"zeon", role:"single", atk:11,  rate:1.15, range:240, weapon:"machine_gun", bio:"지온의 상징. 모노아이와 우측 스파이크 숄더로 한눈에 알아볼 수 있다.", shape:"zaku"},
+  {id:"ball",      name:"RB-79 볼",                   grade:"common", race:"fed",  role:"splash", atk:10,  rate:0.70, range:230, splash:46, weapon:"mega_particle", bio:"일안과 포신을 단 구형 포드. 작지만 포격은 묵직하다.", shape:"ball"},
   {id:"gouf",      name:"MS-07B 구프",                grade:"common", race:"zeon", role:"slow",   atk:14, rate:0.80, range:215, slow:0.32, slowDur:1.4, weapon:"rod", bio:"다섯 손가락과 히트 로드로 지근거리에서 상대를 묶는다.", shape:"gouf"},
-  {id:"guntank",   name:"RX-75 건탱크",               grade:"common", race:"fed",  role:"splash", atk:13, rate:0.62, range:260, splash:54, weapon:"cannon", bio:"캐터필러 차체에 연장 캐논을 얹은 초기 자위용 포전차.", shape:"guntank"},
-  {id:"acguy",     name:"MSM-04 앗가이",              grade:"common", race:"zeon", role:"single", atk:15, rate:0.75, range:200, weapon:"bullet", bio:"원형의 잠수 기체. 짧은 팔과 머리의 등이 둥글다.", shape:"acguy"},
-  {id:"guncannon", name:"RX-77-2 건캐논",             grade:"rare",   race:"fed",  role:"splash", atk:40, rate:0.64, range:270, splash:70, weapon:"cannon", bio:"V핀 머리에 견갑 캐논 두 문을 얹은 중장 포격기.", shape:"guncannon"},
+  {id:"guntank",   name:"RX-75 건탱크",               grade:"common", race:"fed",  role:"splash", atk:13, rate:0.62, range:260, splash:54, weapon:"mega_particle", bio:"캐터필러 차체에 연장 캐논을 얹은 초기 자위용 포전차.", shape:"guntank"},
+  {id:"acguy",     name:"MSM-04 앗가이",              grade:"common", race:"zeon", role:"single", atk:15, rate:0.75, range:200, weapon:"machine_gun", bio:"원형의 잠수 기체. 짧은 팔과 머리의 등이 둥글다.", shape:"acguy"},
+  {id:"guncannon", name:"RX-77-2 건캐논",             grade:"rare",   race:"fed",  role:"splash", atk:40, rate:0.64, range:270, splash:70, weapon:"mega_particle", bio:"V핀 머리에 견갑 캐논 두 문을 얹은 중장 포격기.", shape:"guncannon"},
   {id:"dom",       name:"MS-09 돔",                   grade:"rare",   race:"zeon", role:"splash", atk:44, rate:0.58, range:250, splash:74, weapon:"bazooka", bio:"자이언트 바주카를 든 호버 중기. 보라색 거대 스커트가 인상적이다.", shape:"dom"},
   {id:"gelgoog",   name:"MS-14S 겔구그",              grade:"rare",   race:"zeon", role:"single", atk:36, rate:0.95, range:260, weapon:"beam", bio:"빔 나기나타를 다루는 지온 후기 주력. 커맨드 안테나가 솟아 있다.", shape:"gelgoog"},
   {id:"rickdias",  name:"RMS-099 릭 디아스",          grade:"rare",   race:"aeug", role:"splash", atk:38, rate:0.72, range:265, splash:62, weapon:"bazooka", bio:"검붉은 곡면 장갑과 늘어진 센서가 특징인 에우고의 초기 주력.", shape:"rickdias"},
   {id:"nemo",      name:"MSA-003 네모",               grade:"rare",   race:"aeug", role:"single", atk:28, rate:1.12, range:280, weapon:"beam", bio:"짐의 후계 양산기. 청록 장갑과 단정한 V핀을 지녔다.", shape:"nemo"},
   {id:"zgok",      name:"MSM-07 즈고크",              grade:"rare",   race:"zeon", role:"stun",   atk:36, rate:0.78, range:210, stun:0.40, weapon:"mega", bio:"집게발과 머리의 메가 입자포로 접근전을 지배하는 수륙양용기.", shape:"zgok"},
   {id:"rx78",      name:"RX-78-2 건담",               grade:"hero",   race:"fed",  role:"break",  atk:82, rate:1.00, range:290, armorBreak:0.5, weapon:"beam", bio:"삼색 도장과 V핀, 실드와 빔 라이플의 원점. 전쟁의 아이콘.", shape:"rx78"},
-  {id:"charzaku",  name:"MS-06S 샤아 전용 자쿠 II",   grade:"hero",   race:"zeon", role:"single", atk:68, rate:1.28, range:255, weapon:"bullet", bio:"붉은 혼과 가벼운 기체로 전장을 종횡하는 지휘관기.", shape:"charzaku"},
+  {id:"charzaku",  name:"MS-06S 샤아 전용 자쿠 II",   grade:"hero",   race:"zeon", role:"single", atk:68, rate:1.28, range:255, weapon:"machine_gun", bio:"붉은 혼과 가벼운 기체로 전장을 종횡하는 지휘관기.", shape:"charzaku"},
   {id:"zeta",      name:"MSZ-006 제타 건담",           grade:"hero",   race:"aeug", role:"splash", atk:90, rate:0.88, range:300, splash:78, weapon:"beam", bio:"웨이브라이더로 변형하는 가변기. 검은 흉부와 날렵한 바인더.", shape:"zeta"},
   {id:"hyakushiki",name:"MSN-100 백식",               grade:"hero",   race:"aeug", role:"break",  atk:80, rate:1.05, range:295, armorBreak:0.45, weapon:"beam", bio:"전신을 금색 코팅으로 감싼 고속 타격기. 둥근 안테나 머리가 돋보인다.", shape:"hyakushiki"},
   {id:"qubeley",   name:"AMX-004 큐베레이",            grade:"hero",   race:"axis", role:"splash", atk:96, rate:0.82, range:310, splash:88, weapon:"funnel", bio:"바인더에 품은 펀넬로 전방을 뒤덮는 뉴타입 전용기.", shape:"qubeley"},
@@ -383,11 +386,11 @@ const UNITS=[
   {id:"unicorn",   name:"RX-0 유니콘 건담(디스트로이)", grade:"mythic", race:"ana", role:"aura",   atk:680,rate:0.92, range:360, splash:108, aura:0.24, weapon:"magnum", bio:"사이코 프레임이 전신에 드러난 각성 형태. 펼쳐진 V핀이 뿔처럼 빛난다.", shape:"unicorn"},
   {id:"sinanju",   name:"MSN-06S 시난주",             grade:"mythic", race:"axis", role:"stun",   atk:590,rate:1.08, range:350, stun:0.55, weapon:"beam", bio:"진홍 장갑에 금장식이 새겨진 지휘관기. 늘씬한 실루엣과 긴 안테나.", shape:"sinanju"},
   {id:"hinu",      name:"RX-93-ν2 하이뉴 건담",        grade:"mythic", race:"ana", role:"splash", atk:710,rate:0.88, range:370, splash:120, slow:0.28, slowDur:1.6, weapon:"funnel", bio:"ν의 완성형. 더 많은 핀 펀넬과 부드러운 백팩 곡선이 눈에 띈다.", shape:"hinu"},
-  {id:"whitebase", name:"화이트 베이스 팀",            grade:"hero",   race:"fed",  role:"aura",   atk:88, rate:0.95, range:300, splash:70, aura:0.16, hidden:true, weapon:"cannon", bio:"건담·건캐논·건탱크가 한 함의 이름으로 나란히 선다.", shape:"whitebase"},
+  {id:"whitebase", name:"화이트 베이스 팀",            grade:"hero",   race:"fed",  role:"aura",   atk:88, rate:0.95, range:300, splash:70, aura:0.16, hidden:true, weapon:"mega_particle", bio:"건담·건캐논·건탱크가 한 함의 이름으로 나란히 선다.", shape:"whitebase"},
   {id:"gryps",     name:"그리프스 전역",               grade:"legend", race:"aeug", role:"aura",   atk:260,rate:0.90, range:330, splash:92, aura:0.20, hidden:true, weapon:"funnel", bio:"제타, 백식, 큐베레이가 한 전장에서 빛을 교차한다.", shape:"gryps"},
   {id:"axisfall",  name:"액시즈 공방전",               grade:"mythic", race:"ana",  role:"aura",   atk:650,rate:1.00, range:380, splash:115, aura:0.28, stun:0.25, hidden:true, weapon:"funnel", bio:"ν, 사자비, ZZ가 하나의 결전으로 공명한다.", shape:"axisfall"},
   {id:"gp01", name:"RX-78GP01 제피랜서스", grade:"hero", race:"fed", role:"single", atk:90, rate:0.92, range:315, weapon:"beam", bio:"코우 우라키가 탑승한 GP 계획의 범용 시작기. 기동성과 안정성을 겸비한다.", shape:"rx78", pilot:"코우 우라키"},
-  {id:"gp02", name:"RX-78GP02A 사이살리스", grade:"legend", race:"zeon", role:"splash", atk:235, rate:0.58, range:330, splash:105, weapon:"cannon", bio:"애너벨 가토의 핵탄두 탑재 강습기. 한 발의 포격으로 적 대열을 무너뜨린다.", shape:"sazabi", pilot:"애너벨 가토"},
+  {id:"gp02", name:"RX-78GP02A 사이살리스", grade:"legend", race:"zeon", role:"splash", atk:235, rate:0.58, range:330, splash:105, weapon:"mega_particle", bio:"애너벨 가토의 핵탄두 탑재 강습기. 한 발의 포격으로 적 대열을 무너뜨린다.", shape:"sazabi", pilot:"애너벨 가토"},
   {id:"neue", name:"AMX-002 노이에 질", grade:"mythic", race:"zeon", role:"splash", atk:500, rate:0.78, range:365, splash:112, weapon:"funnel", bio:"가토가 최종 결전에서 조종한 우주용 대형 모빌아머. 긴 팔과 대형 바인더가 특징이다.", shape:"sazabi", pilot:"애너벨 가토"},
   {id:"elmeth", name:"MAN-08 엘메스", grade:"legend", race:"zeon", role:"splash", atk:225, rate:0.86, range:360, splash:92, weapon:"funnel", bio:"라라아 순이 조종한 뉴타입 전용 모빌아머. 비트가 광역을 포위한다.", shape:"qubeley", pilot:"라라아 순"}
 ];
@@ -1140,19 +1143,32 @@ function drawTitleArt(){
 }
 
 const WFX={
-  beam:{color:"#7ee0a0", spd:640, style:"beam"},
-  bullet:{color:"#f0c060", spd:720, style:"tracer"},
-  cannon:{color:"#ff9a3c", spd:480, style:"shell"},
-  rod:{color:"#e8c86a", spd:860, style:"rod"},
+  beam:{color:"#7ee0a0", spd:640, style:"beam"}, beam_rifle:{color:"#7ee0a0",spd:640,style:"beam"},
+  bullet:{color:"#f0c060", spd:720, style:"tracer"}, machine_gun:{color:"#f0c060",spd:720,style:"tracer"}, vulcan:{color:"#f0c060",spd:720,style:"tracer"},
+  cannon:{color:"#ff9a3c", spd:480, style:"shell"}, missile:{color:"#ff9a3c",spd:480,style:"shell"},
+  rod:{color:"#e8c86a", spd:860, style:"rod"}, beam_saber:{color:"#e8c86a",spd:860,style:"rod"},
   bazooka:{color:"#d08040", spd:440, style:"shell"},
-  mega:{color:"#ff5a6a", spd:540, style:"mega"},
-  funnel:{color:"#d0b0ff", spd:400, style:"funnel"},
-  magnum:{color:"#ff6b8a", spd:680, style:"magnum"}
+  mega:{color:"#ff5a6a", spd:540, style:"mega"}, mega_particle:{color:"#ff5a6a",spd:540,style:"mega"},
+  funnel:{color:"#d0b0ff", spd:400, style:"funnel"}, magnum:{color:"#ff6b8a", spd:680, style:"magnum"}, beam_magnum:{color:"#ff6b8a",spd:680,style:"magnum"}
 };
+const WEAPON_SOUND_GAP={beam_rifle:80,beam_magnum:120,mega_particle:110,beam_saber:100,machine_gun:70,bazooka:120,vulcan:60,funnel:75,missile:110};
+const weaponSoundLast={}, weaponVoiceEnds=[];
+function playWeaponSound(kind,speed){
+  if(ui.muted)return;const ac=ensureAudio();if(!ac)return;const now=ac.currentTime;
+  while(weaponVoiceEnds.length&&weaponVoiceEnds[0]<=now)weaponVoiceEnds.shift();
+  if(weaponVoiceEnds.length>=8||(weaponSoundLast[kind]||0)>now)return;
+  weaponSoundLast[kind]=now+(WEAPON_SOUND_GAP[kind]||90)/1000;
+  const master=ac.createGain();master.gain.value=(ui.sfxVol==null?.28:ui.sfxVol)*Math.min(1,1/Math.sqrt(Math.max(1,speed||1)));master.connect(ac.destination);
+  const dur=kind==='beam_magnum'?.34:kind==='bazooka'||kind==='missile'?.22:.14;weaponVoiceEnds.push(now+dur);
+  const osc=(type,f1,f2,level,offset=0)=>{const o=ac.createOscillator(),g=ac.createGain();o.type=type;o.frequency.setValueAtTime(f1,now+offset);o.frequency.exponentialRampToValueAtTime(Math.max(30,f2),now+offset+dur*.75);g.gain.setValueAtTime(.0001,now+offset);g.gain.exponentialRampToValueAtTime(level,now+offset+.012);g.gain.exponentialRampToValueAtTime(.0001,now+offset+dur);o.connect(g);g.connect(master);o.start(now+offset);o.stop(now+offset+dur+.02)};
+  const noise=(cut,len,level)=>{const b=ac.createBuffer(1,Math.ceil(ac.sampleRate*len),ac.sampleRate),d=b.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1;const s=ac.createBufferSource(),f=ac.createBiquadFilter(),g=ac.createGain();s.buffer=b;f.type='lowpass';f.frequency.value=cut;g.gain.setValueAtTime(level,now);g.gain.exponentialRampToValueAtTime(.0001,now+len);s.connect(f);f.connect(g);g.connect(master);s.start(now);s.stop(now+len)};
+  if(kind==='beam_rifle'){osc('sawtooth',950,380,.13);noise(2600,.07,.035)}else if(kind==='beam_magnum'){osc('sawtooth',180,70,.24);osc('sine',110,42,.22,.08);noise(900,.18,.17)}else if(kind==='mega_particle'){osc('sawtooth',360,90,.2);noise(1200,.17,.12)}else if(kind==='beam_saber'){osc('sine',1500,320,.13);noise(5200,.13,.06)}else if(kind==='machine_gun'||kind==='vulcan'){for(let i=0;i<(kind==='vulcan'?3:2);i++){noise(3300,.045,.08);osc('triangle',150,65,.07,i*.055)}}else if(kind==='bazooka'||kind==='missile'){osc('sine',130,38,.2);noise(700,.18,.15)}else if(kind==='funnel'){osc('sine',1800,760,.11);osc('triangle',1200,640,.07,.045)}
+  setTimeout(()=>{try{master.disconnect()}catch(e){}},500);
+}
 
 let rng=Math.random;
 let S=null;
-let ui={shopSel:null, hover:null, toastT:0, gacha:null, paused:false, speed:1, muted:true, storyI:0, pendingStory:null, freezeGacha:false, drag:null, announceT:0, showDamage:true, spectate:null};
+let ui={shopSel:null, hover:null, toastT:0, gacha:null, paused:false, speed:1, muted:true, storyI:0, pendingStory:null, freezeGacha:false, drag:null, announceT:0, showDamage:true, spectate:null, sfxVol:0.28, peersCollapsed:true};
 let audioCtx=null;
 let bestAll={easy:0,normal:0,hard:0,hell:0};
 let codex={};
@@ -1766,6 +1782,7 @@ function fire(u,e){
   if(pilot==="세일라 마스")u.cool*=.82;
   if(pilot==="라라아 순")u.cool*=.92;
   u.anim=0.18;
+  playWeaponSound(({beam:'beam_rifle',bullet:'machine_gun',cannon:'mega_particle',rod:'beam_saber',mega:'mega_particle',magnum:'beam_magnum'}[d.weapon]||d.weapon),ui.speed);
   const wfx=WFX[d.weapon]||WFX.beam;
   const n = d.weapon==="funnel" ? (GMAP[d.grade].rank>=4?6:GMAP[d.grade].rank>=3?5:4) : 1;
   for(let i=0;i<n;i++){
@@ -2724,6 +2741,7 @@ const hooks={
   remain:()=>remainEnemies(),
   skipRound:()=>{ if(!S||S.over) return; S._quickSkip=true; S.skipIn=0; if(S.cleared&&S.waveActive) endRound(); else if(!S.waveActive){S._gap=99} },
   ttk:()=>S&&S.ttkLog||[],
+  playWeaponSound:(kind,speed)=>{try{playWeaponSound(kind,speed||1);return true}catch(e){return false}},
   pathSample:()=>{
     if(!S||!S.enemies.length) return null;
     const e=S.enemies[0], a=posOnTrack(e.prog), b=posOnTrack(e.prog+0.04);
@@ -3281,14 +3299,17 @@ function renderLobby(){
 }
 function renderPeers(){
   const wrap=document.getElementById("peers"), main=document.querySelector(".main");
-  if(net.mode==="solo"){ if(wrap.parentElement===main)main.parentElement.insertBefore(wrap,main); wrap.hidden=true; wrap.innerHTML=""; main.classList.remove("has-peers");
-    document.getElementById("stage").classList.remove("spectating","spectate-remote");const cv=document.getElementById("spectateCv");if(cv)cv.remove();return; }
-  if(wrap.parentElement!==main)main.insertBefore(wrap,main.querySelector(".stage"));
-  const others=net.players.filter(p=>p.id!==net.id);
-  if(!net.players.length && !S){ wrap.hidden=true; main.classList.remove("has-peers"); return; }
-  if(!net.players.length&&S){main.classList.add("has-peers");wrap.hidden=false;wrap.innerHTML='<div class="peer-toolbar" style="grid-column:1/-1;color:var(--muted);font-size:11px">전우가 아직 없습니다 · 내 방어 전장</div><div class="peer-card me" data-pid="'+net.id+'"><div class="pn">'+(net.name||"나")+' (나)</div><div class="pm">R'+S.round+' · 전장 '+S.enemies.length+'/'+S.cap+' · 기체 '+S.units.filter(u=>isField(u.slot)).length+'</div><canvas width="160" height="90"></canvas></div>';const mine=wrap.querySelector('canvas');paintPeerMini(mine,{state:compactState()});wrap.querySelector('.peer-card').onclick=()=>{ui.spectate=ui.spectate===net.id?null:net.id;renderPeers()};return;}
-  wrap.hidden=false; main.classList.add("has-peers");
-  wrap.innerHTML='<div class="peer-toolbar" style="grid-column:1/-1;display:flex;align-items:center;justify-content:space-between;color:var(--muted);font-size:11px"><span>실시간 전장 · '+net.players.length+' / 8</span><button class="btn ghost" id="btnReturnSpectate" type="button" '+(ui.spectate?'':'hidden')+'>내 전장으로 돌아가기 (Esc)</button></div>'+net.players.map(p=>{
+  const overlay=document.getElementById("spectateOverlay");
+  if(net.mode==="solo"){ overlay.classList.remove("show"); ui.spectate=null; }
+  if(overlay&&ui.spectate){const target=net.players.find(p=>p.id===ui.spectate&&p.id!==net.id);if(target){overlay.classList.add("show");document.getElementById("spectateTitle").textContent=(target.name||"전우")+" · R"+((target.state&&target.state.round)||0)+" 관전";paintPeerMini(document.getElementById("spectateOverlayCv"),target)}else overlay.classList.remove("show")}
+  else if(overlay) overlay.classList.remove("show");
+  document.getElementById("stage").classList.remove("spectating","spectate-remote"); const oldCv=document.getElementById("spectateCv");if(oldCv)oldCv.remove();
+  if(wrap.parentElement===main)main.parentElement.insertBefore(wrap,main); wrap.hidden=true; wrap.innerHTML=""; main.classList.remove("has-peers");
+  if(net.mode==="solo") return;
+  if(wrap.parentElement!==document.getElementById("app"))document.getElementById("app").insertBefore(wrap,main);
+  if(!net.players.length && !S){ return; }
+  wrap.hidden=false;
+  wrap.innerHTML='<div class="peer-toolbar" style="grid-column:1/-1;display:flex;align-items:center;justify-content:space-between;color:var(--muted);font-size:11px"><span>'+(ui.peersCollapsed?'▸':'▾')+' 상대 전장 · '+net.players.length+' / 8 (눌러서 '+(ui.peersCollapsed?'펼치기':'접기')+')</span><button class="btn ghost" id="btnReturnSpectate" type="button" '+(ui.spectate?'':'hidden')+'>내 전장으로 돌아가기 (Esc)</button></div>'+net.players.map(p=>{
     const st=p.state||{};
     const dead=st.lost || p.alive===false;
     const tops=(st.top||[]).map(t=>t.name).join(" · ")||"배치 없음";
@@ -3303,10 +3324,15 @@ function renderPeers(){
     paintPeerMini(cv, p);
   });
   wrap.querySelectorAll(".peer-card").forEach(card=>card.onclick=()=>{ui.spectate=card.dataset.pid===net.id||ui.spectate===card.dataset.pid?null:card.dataset.pid;renderPeers()});
-  const back=document.getElementById("btnReturnSpectate"); if(back) back.onclick=()=>{ui.spectate=null;renderPeers()};
   if(!wrap._spectateKeys){wrap._spectateKeys=true;document.addEventListener("keydown",ev=>{if(ev.key==="Escape"&&ui.spectate){ui.spectate=null;renderPeers()}})}
-  wrap.classList.toggle("spectating",!!ui.spectate); const active=ui.spectate&&net.players.find(p=>p.id===ui.spectate); document.getElementById("stage").classList.toggle("spectating",!!active); if(active&&active.id!==net.id) document.getElementById("stage").classList.add("spectate-remote"); else document.getElementById("stage").classList.remove("spectate-remote");
-  if(active&&active.id!==net.id){let cv=document.getElementById("spectateCv");if(!cv){cv=document.createElement("canvas");cv.id="spectateCv";cv.width=LW;cv.height=LH;cv.setAttribute("aria-label","선택한 참가자 전장 관전");document.getElementById("stage").appendChild(cv)}paintPeerMini(cv,active)} else {const cv=document.getElementById("spectateCv");if(cv)cv.remove()}
+  wrap.classList.toggle("spectating",!!ui.spectate);
+  wrap.classList.toggle("collapsed",!!ui.peersCollapsed);
+  {const tb=wrap.querySelector(".peer-toolbar");if(tb)tb.onclick=ev=>{if(ev.target.closest("#btnReturnSpectate"))return;ui.peersCollapsed=!ui.peersCollapsed;renderPeers()};}
+  if(S){const st=compactState();let self=wrap.querySelector('.self-peer');if(!self){self=document.createElement('button');self.type='button';self.className='peer-card self-peer';self.innerHTML='<span class="pn"></span><span class="pm"></span>';}self.querySelector('.pn').textContent=(net.name||'나')+' (나)';self.querySelector('.pm').textContent='R'+S.round+' · 남은 격파 '+S.enemies.length+'/'+S.cap;wrap.prepend(self)}
+  wrap.querySelectorAll('.peer-card').forEach(c=>{if(c.dataset.pid===net.id)c.querySelector('.pm').textContent='R'+S.round+' · 남은 격파 '+S.enemies.length+'/'+S.cap});
+  const close=()=>{ui.spectate=null;renderPeers()};document.getElementById('btnCloseSpectate').onclick=close;document.getElementById('spectateOverlay').onclick=e=>{if(e.target.id==='spectateOverlay')close()};
+  if(ui.spectate){const target=net.players.find(p=>p.id===ui.spectate);if(target)paintPeerMini(document.getElementById('spectateOverlayCv'),target)}
+
 }
 function paintPeerMini(cv, pl){
   const p=cv.getContext("2d"), st=pl&&pl.state||{};
