@@ -3254,7 +3254,7 @@ async function joinRoom(code){
           const finish=v=>{ if(done) return; done=true; resolve(v); };
           const p=new Peer({debug:0});
           net.peer=p;
-          const t=setTimeout(()=>finish(false), 6000);
+          const t=setTimeout(()=>finish(false), 11000);
           p.on("error", ()=>{ clearTimeout(t); finish(false); });
           p.on("open", ()=>{
             const c=p.connect(peerHostId(code), {reliable:true});
@@ -3329,7 +3329,7 @@ function renderPeers(){
   wrap.classList.toggle("collapsed",!!ui.peersCollapsed);
   {const tb=wrap.querySelector(".peer-toolbar");if(tb)tb.onclick=ev=>{if(ev.target.closest("#btnReturnSpectate"))return;ui.peersCollapsed=!ui.peersCollapsed;renderPeers()};}
   if(S){const st=compactState();let self=wrap.querySelector('.self-peer');if(!self){self=document.createElement('button');self.type='button';self.className='peer-card self-peer';self.innerHTML='<span class="pn"></span><span class="pm"></span>';}self.querySelector('.pn').textContent=(net.name||'나')+' (나)';self.querySelector('.pm').textContent='R'+S.round+' · 남은 격파 '+S.enemies.length+'/'+S.cap;wrap.prepend(self)}
-  wrap.querySelectorAll('.peer-card').forEach(c=>{if(c.dataset.pid===net.id)c.querySelector('.pm').textContent='R'+S.round+' · 남은 격파 '+S.enemies.length+'/'+S.cap});
+  if(S)wrap.querySelectorAll('.peer-card').forEach(c=>{if(c.dataset.pid===net.id)c.querySelector('.pm').textContent='R'+S.round+' · 남은 격파 '+S.enemies.length+'/'+S.cap});
   const close=()=>{ui.spectate=null;renderPeers()};document.getElementById('btnCloseSpectate').onclick=close;document.getElementById('spectateOverlay').onclick=e=>{if(e.target.id==='spectateOverlay')close()};
   if(ui.spectate){const target=net.players.find(p=>p.id===ui.spectate);if(target)paintPeerMini(document.getElementById('spectateOverlayCv'),target)}
 
