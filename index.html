@@ -6,7 +6,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
 <meta name="theme-color" content="#070b12" />
 <link rel="icon" href="data:," />
-<title>우주세기 랜덤 디펜스 — 아르카디아 방위전 v4.1</title>
+<title>우주세기 랜덤 디펜스 — 아르카디아 방위전 v4.2</title>
 <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
 <style>
 :root{
@@ -38,7 +38,16 @@ button{font-family:inherit;cursor:pointer;color:inherit}
 .btn.ghost{background:transparent}
 .btn.on{border-color:var(--gold);color:var(--gold2);box-shadow:0 0 0 1px var(--gold) inset}
 .btn.hell{background:linear-gradient(180deg,#5a1820,#2a0a10);border-color:#e35d4a;color:#ffc8c8}
-.peers{position:fixed;z-index:9;bottom:12px;left:50%;transform:translateX(-50%);width:min(560px,94vw);max-height:38vh;display:grid;grid-template-columns:repeat(2,minmax(90px,1fr));grid-auto-rows:min-content;align-content:start;gap:6px;overflow:auto;padding:7px;background:rgba(7,11,18,.92);border:1px solid var(--line);border-radius:12px;box-shadow:0 8px 30px #0009}.peer-toolbar{grid-column:1/-1;cursor:pointer}.peers{grid-template-columns:repeat(auto-fill,minmax(120px,1fr))!important}.peers .self-peer{display:none!important}.peers.collapsed{width:auto;padding:5px 10px}.peers.collapsed>:not(.peer-toolbar){display:none!important}.peer-card.spectating{grid-column:1/-1}
+html,body{overflow-x:hidden}
+.stage{overflow:hidden}
+.alog{overflow-x:hidden}
+.peers{position:fixed;z-index:16;bottom:16px;left:50%;transform:translateX(-50%);width:min(560px,94vw);max-height:38vh;display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr))!important;grid-auto-rows:min-content;align-content:start;gap:6px;overflow:auto;padding:7px;background:rgba(7,11,18,.94);border:1px solid var(--line);border-radius:12px;box-shadow:0 8px 30px #0009;pointer-events:auto;touch-action:manipulation;-webkit-user-select:none;user-select:none}
+.peer-toolbar{grid-column:1/-1;cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:8px;color:var(--muted);font-size:11px;padding:6px 4px;min-height:28px;pointer-events:auto;z-index:1}
+.peer-toolbar span{pointer-events:none}
+.peers .self-peer{display:none!important}
+.peers.collapsed{width:auto;max-width:94vw;padding:6px 12px;max-height:none;overflow:visible}.peers.collapsed #btnReturnSpectate{display:none!important}
+.peers.collapsed>:not(.peer-toolbar){display:none!important}
+.peer-card.spectating{grid-column:1/-1}
 .peer-card{min-width:0;background:linear-gradient(180deg,#151c28,#0e141e);border:1px solid var(--line);border-radius:10px;padding:5px 7px;font-size:11px;cursor:pointer;transition:.2s}
 .peer-card canvas{width:100%;height:60px;background:#0a1018;border-radius:6px;display:block}
 .peer-card.spectating{grid-column:1/-1;border-color:var(--gold)}
@@ -191,7 +200,7 @@ button{font-family:inherit;cursor:pointer;color:inherit}
   <header class="hud">
     <div class="brand">
       <div class="logo">UC</div>
-      <div><h1>아르카디아 방위전</h1><p>우주세기 랜덤 디펜스 v4.1</p><p class="pilot-id" id="stPilot">조종사 --</p></div>
+      <div><h1>아르카디아 방위전</h1><p>우주세기 랜덤 디펜스 v4.2</p><p class="pilot-id" id="stPilot">조종사 --</p></div>
     </div>
     <div class="stats">
       <div class="stat"><span class="k">크레딧</span><span class="v" id="stGold">0</span></div>
@@ -265,7 +274,7 @@ button{font-family:inherit;cursor:pointer;color:inherit}
   <div class="modal">
     <div class="story-art"><canvas id="titleCv" width="960" height="264"></canvas></div>
     <h2>우주세기 랜덤 디펜스</h2>
-    <p id="titleVer">v4.1 · 개인 랜덤 디펜스 · 3분 전멸제 · 시계방향 궤도</p>
+    <p id="titleVer">v4.2 · 개인 랜덤 디펜스 · 3분 전멸제 · 시계방향 궤도</p>
     <p style="text-align:center">아르카디아 콜로니를 지키는<br>모빌슈트 소환 방어전</p>
     <p style="text-align:center">조종사 ID  <b class="pilot-id" id="titlePilot">--</b></p>
     <p style="text-align:center;color:var(--gold2)" id="titleBest"></p>
@@ -385,7 +394,7 @@ button{font-family:inherit;cursor:pointer;color:inherit}
 <script>
 (() => {
 "use strict";
-const VERSION="v4.1", MAX_ROUND=40, PITY_N=15, LW=1100, LH=700, ROUND_SEC=180, BREAK_SEC=6, STAR_MAX=3;
+const VERSION="v4.2", MAX_ROUND=40, PITY_N=15, LW=1100, LH=700, ROUND_SEC=180, BREAK_SEC=6, STAR_MAX=3;
 const BENCH_N=10, OUTER_N=24, INNER_N=12;
 const FIELD_N=OUTER_N+INNER_N, TOTAL_SLOTS=FIELD_N+BENCH_N;
 const GRADES=[
@@ -1911,6 +1920,8 @@ function startRound(fromHost){
   }
   beep(480,.07,"triangle",.04);
   if(typeof startBgmForRound==="function") startBgmForRound(S.round, !!S.boss, S.boss);
+  S._timeoutSent=false;
+  S._tickWall=performance.now();
   if(net.mode==="host" && typeof netBroadcast==="function"){
     netBroadcast({type:"roundStart", round:S.round, dur:S.roundDur, time:S.time, paused:ui.paused, speed:ui.speed});
   }
@@ -2107,6 +2118,42 @@ function lose(reason){
   syncUI();
 }
 
+function applyTimeoutDefeat(){
+  if(!S || S.over || !S.waveActive) return false;
+  if(S.time>0.0001) return false;
+  S.time=0;
+  if(!S.cleared){
+    if(net.mode==="host" && !S._timeoutSent){
+      S._timeoutSent=true;
+      if(typeof netBroadcast==="function") netBroadcast({type:"roundEnd", reason:"timeout", round:S.round});
+    }
+    endRound({reason:"timeout"});
+    return true;
+  }
+  if(net.mode==="host"){
+    if(!S._timeoutSent){
+      S._timeoutSent=true;
+      if(typeof netBroadcast==="function") netBroadcast({type:"roundEnd", reason:"timeout", round:S.round});
+    }
+    endRound({reason:"timeout"});
+    return true;
+  }
+  return false;
+}
+function catchUpRoundClock(){
+  if(!S || S.over || !S.waveActive || ui.paused){ if(S) S._tickWall=performance.now(); return false; }
+  if(net.mode==="solo" && S.cleared){ S._tickWall=performance.now(); return false; }
+  const now=performance.now();
+  const prev=S._tickWall||now;
+  S._tickWall=now;
+  const missed=Math.max(0,(now-prev)/1000)*Math.max(0.25,ui.speed||1);
+  if(missed>0.08){
+    const authFresh=net.mode==="client" && net.authTime!=null && (now-(net._authAt||0)<800);
+    if(!authFresh) S.time=Math.max(0,S.time-missed);
+  }
+  if(S.time<=0) return applyTimeoutDefeat();
+  return false;
+}
 function tick(dt){
   if(ui.announceT>0){ui.announceT-=dt; if(ui.announceT<=0) document.getElementById("announce").classList.remove("show")}
   if(!S || (S.over && !S.waveActive)) { tickFx(dt); if(typeof netOnTick==="function") netOnTick(dt); return; }
@@ -2126,11 +2173,13 @@ function tick(dt){
     }
   }
   if(S.waveActive){
-    if(net.mode==="client" && net.authTime!=null){
-      S.time=net.authTime;
+    if(net.mode==="client" && net.authTime!=null && net._authAt && (performance.now()-net._authAt)<1200){
+      const spd=Math.max(0.25, ui.speed||1);
+      S.time=Math.max(0, net.authTime - (performance.now()-net._authAt)/1000*spd);
     } else if(!(net.mode==="solo" && S.cleared)){
       S.time-=dt;
     }
+    S._tickWall=performance.now();
     if(!S.cleared && S.spawnQ.length){
       S.spawnT-=dt;
       if(S.spawnT<=0){spawnOne(S.spawnQ.shift()); S.spawnT=S.spawnGap||0.8}
@@ -2154,15 +2203,10 @@ function tick(dt){
           endRound({reason:"allClear"});
         }
       } else if(S.time<=0){
-        S.time=0;
-        if(typeof netBroadcast==="function") netBroadcast({type:"roundEnd", reason:"timeout", round:S.round});
-        endRound({reason:"timeout"});
+        applyTimeoutDefeat();
       }
     }
-    if(!S.cleared && S.time<=0){
-      S.time=0;
-      if(net.mode!=="client") endRound({reason:"timeout"});
-    }
+    if(S.time<=0) applyTimeoutDefeat();
   }
   for(const u of S.units){
     u.cool=Math.max(0,u.cool-dt);
@@ -2630,7 +2674,7 @@ document.getElementById("btnCodexClose").onclick=()=>document.getElementById("ov
 document.getElementById("btnRecipeClose").onclick=()=>document.getElementById("ovRecipe").classList.remove("show");
 document.getElementById("btnSpeed").onclick=()=>{
   if(net.mode==="client"){toast("배속은 호스트만 바꿀 수 있어요"); return}
-  ui.speed=ui.speed===1?2:ui.speed===2?3:1; syncUI();
+  ui.speed=ui.speed===1?2:ui.speed===2?3:1; if(S) S._tickWall=performance.now(); syncUI();
   if(net.mode==="host" && typeof netBroadcast==="function") netBroadcast({type:"speed", speed:ui.speed});
 };
 document.getElementById("btnDamage").onclick=()=>{ui.showDamage=!ui.showDamage;const b=document.getElementById("btnDamage");b.classList.toggle("on",ui.showDamage);b.textContent=ui.showDamage?"피해 표시":"피해 숨김"};
@@ -2639,7 +2683,8 @@ document.addEventListener("keydown",ev=>{if(ev.key==="Escape"&&ui.spectate){ui.s
 document.getElementById("btnPause").onclick=()=>{
   if(!S||S.over) return;
   if(net.mode==="client"){toast("일시정지는 호스트만 할 수 있어요"); return}
-  ui.paused=!ui.paused; syncUI(); draw();
+  if(S){ if(ui.paused){ /* unpausing */ S._tickWall=performance.now(); } else { catchUpRoundClock(); S._tickWall=performance.now(); } }
+  ui.paused=!ui.paused; if(S) S._tickWall=performance.now(); syncUI(); draw();
   if(net.mode==="host" && typeof netBroadcast==="function") netBroadcast({type:"pause", paused:ui.paused});
 };
 document.getElementById("btnMute").onclick=()=>{
@@ -2772,7 +2817,7 @@ function hasRunSave(){
     const raw=localStorage.getItem(LS_RUN);
     if(!raw) return null;
     const d=JSON.parse(raw);
-    if(!d||!d.state||d.v!==VERSION) return null;
+    if(!d||!d.state||(d.v!==VERSION && d.v!=="v4.1")) return null;
     if(d.state.over) return null;
     return d;
   }catch(e){return null}
@@ -2914,7 +2959,7 @@ function startGame(diff){
 window.addEventListener("keydown", ev=>{
   if(ev.key===" " || ev.key==="Enter"){ ev.preventDefault(); if(S) beginDraw(); }
   if(ev.key==="p"||ev.key==="P"){if(S&&!S.over && net.mode!=="client"){ui.paused=!ui.paused;syncUI();draw()}}
-  if(ev.key==="d"||ev.key==="D"){if(net.mode!=="client"){ui.speed=ui.speed===1?2:ui.speed===2?3:1;syncUI()}}
+  if(ev.key==="d"||ev.key==="D"){if(net.mode!=="client"){ui.speed=ui.speed===1?2:ui.speed===2?3:1; if(S) S._tickWall=performance.now(); syncUI()}}
   if(ev.key==="m"||ev.key==="M"){if(S){tryAutoMerge();syncUI();draw()}}
 });
 let last=0, acc=0;
@@ -3074,8 +3119,8 @@ const hooks={
   finishGacha, mergeAll:()=>tryAutoMerge(), craft:()=>craftRecipe(),
   tick:(ms)=>{let t=ms/1000; while(t>0){const s=Math.min(t,1/60); tick(s); t-=s} syncUI(); draw(); return snapshot()},
   state:snapshot,
-  setPaused:(b)=>{ui.paused=!!b; syncUI(); draw()},
-  setSpeed:(n)=>{ui.speed=n; syncUI()},
+  setPaused:(b)=>{ui.paused=!!b; if(S) S._tickWall=performance.now(); syncUI(); draw()},
+  setSpeed:(n)=>{ui.speed=n; if(S) S._tickWall=performance.now(); syncUI()},
   setAutoMerge:(b)=>{if(S) S.autoMerge=!!b},
   setAutoPlace:(b)=>{if(S) S.autoPlace=!!b},
   move:(from,to)=>moveUnit(from,to),
@@ -3416,7 +3461,7 @@ function netSendState(force){
     const me=net.players.find(p=>p.id===net.id);
     if(me) me.state=st;
     netBroadcast({type:"state", state:st, players: slimPlayers()});
-    renderPeers();
+    schedulePeerPaint();
   } else {
     netSendToHost({type:"state", state:st});
   }
@@ -3490,6 +3535,8 @@ function handleNetMsg(msg, conn){
   } else if(msg.type==="roundStart"){
     if(net.mode==="client" && S && !S.eliminated){
       net.authTime=msg.time;
+      net._authAt=performance.now();
+      if(S) S._tickWall=performance.now();
       if(!S.waveActive || S.round!==msg.round){
         if(S.round!==msg.round-1 && S.round!==msg.round){ /* resync */ }
         if(S.waveActive && S.round===msg.round){ S.time=msg.time; S.roundDur=msg.dur; }
@@ -3508,25 +3555,28 @@ function handleNetMsg(msg, conn){
   } else if(msg.type==="tick"){
     if(net.mode==="client" && S){
       net.authTime=msg.time;
+      net._authAt=performance.now();
       S.time=msg.time;
+      S._tickWall=performance.now();
       if(typeof msg.speed==="number") ui.speed=msg.speed;
       if(typeof msg.paused==="boolean") ui.paused=msg.paused;
+      if(S.time<=0 && typeof applyTimeoutDefeat==="function") applyTimeoutDefeat();
     }
   } else if(msg.type==="speed"){
     if(net.mode==="client") ui.speed=msg.speed||1;
   } else if(msg.type==="pause"){
-    if(net.mode==="client"){ ui.paused=!!msg.paused; syncUI(); draw(); }
+    if(net.mode==="client"){ ui.paused=!!msg.paused; if(S) S._tickWall=performance.now(); syncUI(); draw(); }
   } else if(msg.type==="state"){
-    const p=net.players.find(x=>x.id===msg.from) || (msg.state && net.mode==="host"?null:null);
     if(net.mode==="host"){
       const pl=net.players.find(x=>x.id===msg.from);
       if(pl){ pl.state=msg.state; if(msg.state && msg.state.lost) pl.alive=false; }
-      renderPeers();
+      schedulePeerPaint();
     } else if(msg.players){
       net.players=msg.players;
-      renderPeers();
+      schedulePeerPaint();
     } else if(msg.from){
       upsertPlayer({id:msg.from, state:msg.state, alive:!(msg.state&&msg.state.lost)});
+      schedulePeerPaint();
     }
   } else if(msg.type==="announce"){
     if(msg.rec) showAnnounce(msg.rec, false);
@@ -3546,7 +3596,7 @@ function netOnTick(dt){
     netBroadcast({type:"tick", time:S.time, round:S.round, speed:ui.speed, paused:ui.paused});
   }
   netSendState(false);
-  if(net.mode==="host" && net.players.some(p=>p.id!==net.id && p.state)) renderPeers();
+  if(net.mode!=="solo") schedulePeerPaint();
 }
 
 function attachPeerConn(conn, asHost){
@@ -3698,43 +3748,114 @@ function renderLobby(){
     play.textContent=wait.length?"준비 대기 중":"난이도 선택";
   }
 }
-function renderPeers(){
+function schedulePeerPaint(){
+  if(net._peerPaint) return;
+  net._peerPaint=setTimeout(()=>{net._peerPaint=0; if(net.mode!=="solo") renderPeers({soft:true});}, 180);
+}
+function bindPeersUi(){
+  const wrap=document.getElementById("peers");
+  if(!wrap || wrap._bound) return;
+  wrap._bound=true;
+  wrap.addEventListener("pointerdown", ev=>{
+    if(net.mode==="solo") return;
+    const ret=ev.target.closest("#btnReturnSpectate");
+    const tb=ev.target.closest(".peer-toolbar");
+    const card=ev.target.closest(".peer-card");
+    if(!ret && !tb && !card) return;
+    ev.preventDefault(); ev.stopPropagation();
+    if(ret){ ui.spectate=null; renderPeers({force:true}); return; }
+    if(tb){ ui.peersCollapsed=!ui.peersCollapsed; renderPeers({force:true}); return; }
+    if(card && card.dataset.pid && card.dataset.pid!==net.id){
+      ui.spectate=ui.spectate===card.dataset.pid?null:card.dataset.pid;
+      ui.peersCollapsed=false;
+      renderPeers({force:true});
+    }
+  });
+  if(!wrap._spectateKeys){
+    wrap._spectateKeys=true;
+    document.addEventListener("keydown", ev=>{ if(ev.key==="Escape" && ui.spectate){ ui.spectate=null; renderPeers({force:true}); } });
+  }
+  const ov=document.getElementById("spectateOverlay");
+  const btn=document.getElementById("btnCloseSpectate");
+  if(btn && !btn._bound){ btn._bound=true; btn.onclick=()=>{ui.spectate=null;renderPeers({force:true})}; }
+  if(ov && !ov._bound){ ov._bound=true; ov.onclick=e=>{ if(e.target.id==="spectateOverlay"){ ui.spectate=null; renderPeers({force:true}); } }; }
+}
+function peerCardHtml(p){
+  const st=p.id===net.id && S ? Object.assign({}, p.state||{}, compactState()) : (p.state||{});
+  const dead=st.lost || p.alive===false;
+  const tops=(st.top||[]).map(t=>t.name).join(" · ")||"배치 없음";
+  const remain=st.cleared?"소탕":("잔여 "+(st.enemies||0));
+  return '<div class="peer-card '+(p.id===net.id?"me":"")+(dead?" dead":"")+(ui.spectate===p.id?" spectating":"")+'" data-pid="'+p.id+'">'+
+    '<div class="pn">'+(p.host?"★ ":"")+(p.name||"?")+(p.id===net.id?" (나)":"")+'</div>'+
+    '<div class="pm">R'+(st.round||0)+' · '+remain+' · 기체 '+(st.field||0)+'</div>'+
+    '<canvas width="220" height="80" data-pid="'+p.id+'"></canvas>'+
+    '<div class="tops">'+(dead?"탈락":(st.won?"클리어":tops))+'</div></div>';
+}
+function renderPeers(opt){
+  opt=opt||{};
   const wrap=document.getElementById("peers"), main=document.querySelector(".main");
   const overlay=document.getElementById("spectateOverlay");
-  if(net.mode==="solo"){ overlay.classList.remove("show"); ui.spectate=null; }
-  if(overlay&&ui.spectate){const target=net.players.find(p=>p.id===ui.spectate&&p.id!==net.id);if(target){overlay.classList.add("show");document.getElementById("spectateTitle").textContent=(target.name||"전우")+" · R"+((target.state&&target.state.round)||0)+" 관전";paintPeerMini(document.getElementById("spectateOverlayCv"),target)}else overlay.classList.remove("show")}
-  else if(overlay) overlay.classList.remove("show");
-  document.getElementById("stage").classList.remove("spectating","spectate-remote"); const oldCv=document.getElementById("spectateCv");if(oldCv)oldCv.remove();
-  if(wrap.parentElement===main)main.parentElement.insertBefore(wrap,main); wrap.hidden=true; wrap.innerHTML=""; main.classList.remove("has-peers");
-  if(net.mode==="solo") return;
-  if(wrap.parentElement!==document.getElementById("app"))document.getElementById("app").insertBefore(wrap,main);
-  if(!net.players.length && !S){ return; }
+  bindPeersUi();
+  if(net.mode==="solo"){
+    if(overlay) overlay.classList.remove("show");
+    ui.spectate=null;
+    if(wrap){ wrap.hidden=true; wrap.innerHTML=""; }
+    if(main) main.classList.remove("has-peers");
+    return;
+  }
+  if(!wrap) return;
+  if(wrap.parentElement!==document.body) document.body.appendChild(wrap);
+  const others=net.players.filter(p=>p.id!==net.id);
+  if(!net.players.length){ wrap.hidden=true; return; }
   wrap.hidden=false;
-  wrap.innerHTML='<div class="peer-toolbar" style="grid-column:1/-1;display:flex;align-items:center;justify-content:space-between;color:var(--muted);font-size:11px"><span>'+(ui.peersCollapsed?'▸':'▾')+' 상대 전장 · '+net.players.length+' / 8 (눌러서 '+(ui.peersCollapsed?'펼치기':'접기')+')</span><button class="btn ghost" id="btnReturnSpectate" type="button" '+(ui.spectate?'':'hidden')+'>내 전장으로 돌아가기 (Esc)</button></div>'+net.players.map(p=>{
-    const st=p.state||{};
-    const dead=st.lost || p.alive===false;
-    const tops=(st.top||[]).map(t=>t.name).join(" · ")||"배치 없음";
-    return '<div class="peer-card '+(p.id===net.id?"me":"")+(dead?" dead":"")+(ui.spectate===p.id?" spectating":"")+'" data-pid="'+p.id+'">'+
-      '<div class="pn">'+(p.host?"★ ":"")+(p.name||"?")+(p.id===net.id?" (나)":"")+'</div>'+
-      '<div class="pm">R'+(st.round|| (S&&p.id===net.id?S.round:0))+' · '+(st.cleared?'소탕':'잔여 '+(st.enemies||0))+' · 기체 '+(st.field||0)+'</div>'+
-      '<canvas width="160" height="54" data-pid="'+p.id+'"></canvas>'+
-      '<div class="tops">'+(dead?"탈락":(st.won?"클리어":tops))+'</div></div>';
-  }).join("");
-  wrap.querySelectorAll("canvas").forEach(cv=>{
-    const pid=cv.dataset.pid, p=net.players.find(x=>x.id===pid);
-    paintPeerMini(cv, p);
-  });
-  wrap.querySelectorAll(".peer-card").forEach(card=>card.onclick=()=>{ui.spectate=card.dataset.pid===net.id||ui.spectate===card.dataset.pid?null:card.dataset.pid;renderPeers()});
-  if(!wrap._spectateKeys){wrap._spectateKeys=true;document.addEventListener("keydown",ev=>{if(ev.key==="Escape"&&ui.spectate){ui.spectate=null;renderPeers()}})}
-  wrap.classList.toggle("spectating",!!ui.spectate);
-  wrap.classList.toggle("collapsed",!!ui.peersCollapsed);
-  {const tb=wrap.querySelector(".peer-toolbar");if(tb)tb.onclick=ev=>{if(ev.target.closest("#btnReturnSpectate"))return;ui.peersCollapsed=!ui.peersCollapsed;renderPeers()};}
-  if(S){const st=compactState();let self=wrap.querySelector('.self-peer');if(!self){self=document.createElement('button');self.type='button';self.className='peer-card self-peer';self.innerHTML='<span class="pn"></span><span class="pm"></span>';}self.querySelector('.pn').textContent=(net.name||'나')+' (나)';self.querySelector('.pm').textContent='R'+S.round+' · '+(S.cleared?'소탕':'잔여 '+S.enemies.length);wrap.prepend(self)}
-  if(S)wrap.querySelectorAll('.peer-card').forEach(c=>{if(c.dataset.pid===net.id)c.querySelector('.pm').textContent='R'+S.round+' · '+(S.cleared?'소탕':'잔여 '+S.enemies.length)});
-  const close=()=>{ui.spectate=null;renderPeers()};document.getElementById('btnCloseSpectate').onclick=close;document.getElementById('spectateOverlay').onclick=e=>{if(e.target.id==='spectateOverlay')close()};
-  if(ui.spectate){const target=net.players.find(p=>p.id===ui.spectate);if(target)paintPeerMini(document.getElementById('spectateOverlayCv'),target)}
-
+  wrap.classList.toggle("spectating", !!ui.spectate);
+  wrap.classList.toggle("collapsed", !!ui.peersCollapsed);
+  const sig=net.players.map(p=>p.id).join(",")+"|"+(ui.spectate||"")+"|"+(ui.peersCollapsed?"c":"o");
+  const needBuild=opt.force || wrap._sig!==sig || !wrap.querySelector(".peer-toolbar");
+  if(needBuild){
+    wrap._sig=sig;
+    const count=net.players.length;
+    const label=(ui.peersCollapsed?"▸":"▾")+" 상대 전장 · "+count+" / 8 (눌러서 "+(ui.peersCollapsed?"펼치기":"접기")+")";
+    wrap.innerHTML='<div class="peer-toolbar" role="button" tabindex="0" aria-expanded="'+(!ui.peersCollapsed)+'"><span>'+label+'</span><button class="btn ghost" id="btnReturnSpectate" type="button" '+(ui.spectate?"":"hidden")+' >내 전장으로 돌아가기 (Esc)</button></div>'+
+      others.map(peerCardHtml).join("")+
+      net.players.filter(p=>p.id===net.id).map(peerCardHtml).join("");
+  } else {
+    const span=wrap.querySelector(".peer-toolbar span");
+    if(span) span.textContent=(ui.peersCollapsed?"▸":"▾")+" 상대 전장 · "+net.players.length+" / 8 (눌러서 "+(ui.peersCollapsed?"펼치기":"접기")+")";
+    wrap.querySelectorAll(".peer-card").forEach(card=>{
+      const p=net.players.find(x=>x.id===card.dataset.pid);
+      if(!p) return;
+      const tmp=document.createElement("div");
+      tmp.innerHTML=peerCardHtml(p);
+      const neu=tmp.firstElementChild;
+      const oldCv=card.querySelector("canvas");
+      card.className=neu.className;
+      const pn=card.querySelector(".pn"), npm=card.querySelector(".pm"), tops=card.querySelector(".tops");
+      const npn=neu.querySelector(".pn"), npm2=neu.querySelector(".pm"), nt=neu.querySelector(".tops");
+      if(pn&&npn) pn.textContent=npn.textContent;
+      if(npm&&npm2) npm.textContent=npm2.textContent;
+      if(tops&&nt) tops.textContent=nt.textContent;
+      if(!oldCv) card.insertAdjacentHTML("beforeend", neu.querySelector("canvas").outerHTML);
+    });
+  }
+  if(!ui.peersCollapsed){
+    wrap.querySelectorAll(".peer-card canvas").forEach(cv=>{
+      const p=net.players.find(x=>x.id===cv.dataset.pid);
+      if(p) paintPeerMini(cv, p);
+    });
+  }
+  if(overlay){
+    if(ui.spectate){
+      const target=net.players.find(p=>p.id===ui.spectate && p.id!==net.id);
+      if(target){
+        overlay.classList.add("show");
+        document.getElementById("spectateTitle").textContent=(target.name||"전우")+" · R"+((target.state&&target.state.round)||0)+" 관전";
+        paintPeerMini(document.getElementById("spectateOverlayCv"), target);
+      } else overlay.classList.remove("show");
+    } else overlay.classList.remove("show");
+  }
 }
+
 function paintPeerMini(cv, pl){
   const p=cv.getContext("2d"), st=pl&&pl.state||{};
   const w=cv.width,h=cv.height, scale=Math.min(w/LW,h/LH), ox=(w-LW*scale)/2, oy=(h-LH*scale)/2;
@@ -3806,7 +3927,13 @@ document.getElementById("btnContinue").onclick=()=>{
   if(typeof requirePilot==="function" && !requirePilot()) return;
   resumeRun();
 };
-window.addEventListener("visibilitychange", ()=>{ if(document.hidden && typeof saveRun==="function") saveRun(); });
+window.addEventListener("visibilitychange", ()=>{
+  if(document.hidden && typeof saveRun==="function") saveRun();
+  if(typeof catchUpRoundClock==="function" && catchUpRoundClock()){ if(typeof syncUI==="function") syncUI(); if(typeof draw==="function") draw(); }
+});
+setInterval(()=>{
+  if(typeof catchUpRoundClock==="function" && catchUpRoundClock()){ if(typeof syncUI==="function") syncUI(); if(typeof draw==="function") draw(); }
+}, 250);
 window.addEventListener("beforeunload", ()=>{ if(typeof saveRun==="function") saveRun(); });
 
 document.getElementById("btnHost").onclick=()=>{
@@ -3861,6 +3988,13 @@ hooks.joinRoom=joinRoom;
 hooks.leaveRoom=netLeave;
 hooks.renderPeers=renderPeers;
 hooks.lobbyPlayers=()=>slimPlayers();
+hooks.togglePeers=()=>{ui.peersCollapsed=!ui.peersCollapsed;renderPeers({force:true});return !ui.peersCollapsed};
+hooks.setTime=(sec)=>{if(!S)return null;S.time=Math.max(0,sec);S._tickWall=performance.now();if(S.time<=0)applyTimeoutDefeat();syncUI();draw();return snapshot()};
+hooks.injectPeer=(p)=>{upsertPlayer(p||{});renderPeers({force:true});return slimPlayers()};
+hooks.applyTimeout=()=>applyTimeoutDefeat();
+hooks.catchUp=()=>catchUpRoundClock();
+hooks.forceClear=()=>{if(!S)return snapshot();S.enemies=[];S.spawnQ=[];S.cleared=true;S.boss=null;syncUI();draw();return snapshot()};
+hooks.endRoundNow=(reason)=>endRound(reason?{reason}:undefined);
 
 const inName=document.getElementById("inName");
 if(inName){ inName.value=net.name||""; inName.addEventListener("change", saveName); }
